@@ -108,6 +108,9 @@ function bringDataLayersToFront() {
     if (layers.pontos && map.hasLayer(layers.pontos)) {
         layers.pontos.bringToFront();
     }
+    if (layers.solos && map.hasLayer(layers.solos)) {
+        layers.solos.bringToFront();
+    }
 }
 
 // Configurar event listeners
@@ -237,6 +240,15 @@ function setupEventListeners() {
         }
     });
 
+    // Controle da camada de solos
+    document.getElementById('layer-solos').addEventListener('change', function() {
+        if (this.checked) {
+            if (layers.solos) map.addLayer(layers.solos);
+        } else {
+            if (layers.solos) map.removeLayer(layers.solos);
+        }
+    });
+
     // Controles do mapa
     document.getElementById('zoom-in').addEventListener('click', function() {
         map.zoomIn();
@@ -349,8 +361,9 @@ function printMap() {
 let loadedLimiteTotal = false;
 let loadedLimiteZonas = false;
 let loadedPontos = false;
+let loadedSolos = false;
 function tryHideAllExceptLimiteTotalAndSatelite() {
-    if (loadedLimiteTotal && loadedLimiteZonas && loadedPontos) {
+    if (loadedLimiteTotal && loadedLimiteZonas && loadedPontos && loadedSolos) {
         hideAllExceptLimiteTotalAndSatelite();
     }
 }
@@ -523,6 +536,69 @@ function loadGeoJSONLayers() {
             console.error('Erro ao carregar Pontos:', err);
             alert('Erro ao carregar Pontos: ' + err.message);
         });
+
+    // Solos
+    fetch('data/solos_tcl.geojson')
+        .then(resp => {
+            if (!resp.ok) throw new Error('Erro ao carregar solos_tcl.geojson: ' + resp.status);
+            return resp.json();
+        })
+        .then(data => {
+            // Definir paleta de cores para as ordens de solo
+            const ordemColors = {
+                'ARGISSOLO': '#8B4513',      // Marrom escuro
+                'CAMBISSOLO': '#D2691E',     // Marrom chocolate
+                'CHERNOSSOLO': '#654321',    // Marrom muito escuro
+                'ESPODOSSOLO': '#F4A460',    // Marrom areia
+                'GLEISSOLO': '#2F4F4F',      // Cinza escuro
+                'LATOSSOLO': '#CD853F',      // Marrom peru
+                'LUVISSOLO': '#A0522D',      // Marrom sienna
+                'NEOSSOLO': '#DEB887',       // Marrom trigo
+                'NITOSSOLO': '#8B7355',      // Marrom bronze
+                'ORGANOSSOLO': '#228B22',    // Verde floresta
+                'PLANOSSOLO': '#B8860B',     // Marrom dourado escuro
+                'PLINTOSSOLO': '#DAA520',    // Marrom dourado
+                'VERTISSOLO': '#556B2F'      // Verde oliva escuro
+            };
+
+            layers.solos = L.geoJSON(data, {
+                style: function(feature) {
+                    const ordem = feature.properties.ordem;
+                    const color = ordemColors[ordem] || '#808080'; // Cinza padrão se não encontrar
+                    
+                    return {
+                        color: '#000000',
+                        weight: 1,
+                        opacity: 0.8,
+                        fillColor: color,
+                        fillOpacity: 0.6
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    if (feature.properties) {
+                        layer.bindPopup(`
+                            <div class='popup-content'>
+                                <h4>Solos</h4>
+                                <p><strong>Ordem:</strong> ${feature.properties.ordem || 'N/A'}</p>
+                                <p><strong>Subordem:</strong> ${feature.properties.subordem || 'N/A'}</p>
+                                <p><strong>Grande Grupo:</strong> ${feature.properties.grande_gru || 'N/A'}</p>
+                                <p><strong>Subgrupo:</strong> ${feature.properties.subgrupos || 'N/A'}</p>
+                                <p><strong>Textura:</strong> ${feature.properties.textura || 'N/A'}</p>
+                                <p><strong>Relevo:</strong> ${feature.properties.relevo || 'N/A'}</p>
+                                <p><strong>Área (km²):</strong> ${feature.properties.ar_poli_km ? feature.properties.ar_poli_km.toFixed(2) : 'N/A'}</p>
+                            </div>
+                        `);
+                    }
+                }
+            }).addTo(map);
+            bringDataLayersToFront();
+            loadedSolos = true;
+            tryHideAllExceptLimiteTotalAndSatelite();
+        })
+        .catch(err => {
+            console.error('Erro ao carregar Solos:', err);
+            alert('Erro ao carregar Solos: ' + err.message);
+        });
 }
 
 // Após carregar todas as camadas, remova todas as camadas do mapa que não sejam Limite Total e Satélite
@@ -552,6 +628,10 @@ function hideAllExceptLimiteTotalAndSatelite() {
         layers.pointLabels.forEach(label => {
             if (map.hasLayer(label)) map.removeLayer(label);
         });
+    }
+    // Solos
+    if (layers.solos && map.hasLayer(layers.solos)) {
+        map.removeLayer(layers.solos);
     }
 }
 
