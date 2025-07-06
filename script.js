@@ -1,7 +1,7 @@
 // Variáveis globais
 let map;
 let currentBasemap = 'osm';
-let layers = {};
+let layers = { soloClasses: {} };
 let isFullscreen = false;
 
 // Configuração dos mapas de fundo (apenas 3)
@@ -32,9 +32,9 @@ function initMap() {
     
     // Criar o mapa sem nenhum basemap ativo inicialmente
     map = L.map('map', {
-        center: [-15.7801, -47.9292], // Brasília, Brasil
-        zoom: 5,
-        zoomControl: false, // Desabilitar controles padrão do Leaflet
+        center: [-12.5, -39.5],
+        zoom: 7,
+        zoomControl: true,
         attributionControl: true
     });
 
@@ -55,11 +55,14 @@ function initMap() {
     // Adicionar todos os basemaps marcados por padrão
     addInitialBasemaps();
 
+    // Carregar camadas GeoJSON
+    loadLimiteTotal();
+    loadLimiteZonas();
+    loadPontos();
+    loadSolos();
+
     // Event listeners
     setupEventListeners();
-    
-    // Carregar camadas GeoJSON
-    loadGeoJSONLayers();
     
     console.log('WebGIS inicializado com sucesso!');
 }
@@ -108,9 +111,6 @@ function bringDataLayersToFront() {
     if (layers.pontos && map.hasLayer(layers.pontos)) {
         layers.pontos.bringToFront();
     }
-    if (layers.solos && map.hasLayer(layers.solos)) {
-        layers.solos.bringToFront();
-    }
 }
 
 // Configurar event listeners
@@ -129,125 +129,60 @@ function setupEventListeners() {
     });
 
     // Controles de camadas
-    document.getElementById('layer-limite-total').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers.limiteTotal) map.addLayer(layers.limiteTotal);
-        } else {
-            if (layers.limiteTotal) map.removeLayer(layers.limiteTotal);
-        }
-    });
+    const limiteTotalEl = document.getElementById('layer-limite-total');
+    if (limiteTotalEl) {
+        limiteTotalEl.addEventListener('change', function() {
+            if (layers.limiteTotal) {
+                if (this.checked) {
+                    map.addLayer(layers.limiteTotal);
+                    bringDataLayersToFront();
+                } else {
+                    map.removeLayer(layers.limiteTotal);
+                }
+            }
+        });
+    }
+    const limiteZonasEl = document.getElementById('layer-limite-zonas');
+    if (limiteZonasEl) {
+        limiteZonasEl.addEventListener('change', function() {
+            if (layers.limiteZonas) {
+                if (this.checked) {
+                    map.addLayer(layers.limiteZonas);
+                    bringDataLayersToFront();
+                } else {
+                    map.removeLayer(layers.limiteZonas);
+                }
+            }
+        });
+    }
+    
     // Event listeners individuais para cada zona
-    document.getElementById('layer-zona-sisal').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-sisal']) map.addLayer(layers['zona-sisal']);
-        } else {
-            if (layers['zona-sisal']) map.removeLayer(layers['zona-sisal']);
+    ['sisal','baixo-sul','vale-jiquirica','piemonte-paraguacu','bacia-jacuipe','litoral-norte','portal-sertao','reconcavo','medio-rio-contas','metropolitano-salvador'].forEach(zona => {
+        const cb = document.getElementById(`layer-zona-${zona}`);
+        if (cb) {
+            cb.addEventListener('change', function() {
+                const key = `zona-${zona}`;
+                if (this.checked) {
+                    if (layers[key]) map.addLayer(layers[key]);
+                } else {
+                    if (layers[key]) map.removeLayer(layers[key]);
+                }
+            });
         }
     });
-    document.getElementById('layer-zona-baixo-sul').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-baixo-sul']) map.addLayer(layers['zona-baixo-sul']);
-        } else {
-            if (layers['zona-baixo-sul']) map.removeLayer(layers['zona-baixo-sul']);
-        }
-    });
-    document.getElementById('layer-zona-vale-jiquirica').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-vale-do-jiquirica']) map.addLayer(layers['zona-vale-do-jiquirica']);
-        } else {
-            if (layers['zona-vale-do-jiquirica']) map.removeLayer(layers['zona-vale-do-jiquirica']);
-        }
-    });
-    document.getElementById('layer-zona-piemonte-paraguacu').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-piemonte-do-paraguacu']) map.addLayer(layers['zona-piemonte-do-paraguacu']);
-        } else {
-            if (layers['zona-piemonte-do-paraguacu']) map.removeLayer(layers['zona-piemonte-do-paraguacu']);
-        }
-    });
-    document.getElementById('layer-zona-bacia-jacuipe').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-bacia-do-jacuipe']) map.addLayer(layers['zona-bacia-do-jacuipe']);
-        } else {
-            if (layers['zona-bacia-do-jacuipe']) map.removeLayer(layers['zona-bacia-do-jacuipe']);
-        }
-    });
-    document.getElementById('layer-zona-litoral-norte').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-litoral-norte-e-agreste-baiano']) map.addLayer(layers['zona-litoral-norte-e-agreste-baiano']);
-        } else {
-            if (layers['zona-litoral-norte-e-agreste-baiano']) map.removeLayer(layers['zona-litoral-norte-e-agreste-baiano']);
-        }
-    });
-    document.getElementById('layer-zona-portal-sertao').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-portal-do-sertao']) map.addLayer(layers['zona-portal-do-sertao']);
-        } else {
-            if (layers['zona-portal-do-sertao']) map.removeLayer(layers['zona-portal-do-sertao']);
-        }
-    });
-    document.getElementById('layer-zona-reconcavo').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-reconcavo']) map.addLayer(layers['zona-reconcavo']);
-        } else {
-            if (layers['zona-reconcavo']) map.removeLayer(layers['zona-reconcavo']);
-        }
-    });
-    document.getElementById('layer-zona-medio-rio-contas').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-medio-rio-de-contas']) map.addLayer(layers['zona-medio-rio-de-contas']);
-        } else {
-            if (layers['zona-medio-rio-de-contas']) map.removeLayer(layers['zona-medio-rio-de-contas']);
-        }
-    });
-    document.getElementById('layer-zona-metropolitano-salvador').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers['zona-metropolitano-de-salvador']) map.addLayer(layers['zona-metropolitano-de-salvador']);
-        } else {
-            if (layers['zona-metropolitano-de-salvador']) map.removeLayer(layers['zona-metropolitano-de-salvador']);
-        }
-    });
-    document.getElementById('layer-pontos').addEventListener('change', function() {
-        console.log('Evento de mudança na camada pontos:', this.checked);
-        if (this.checked) {
-            if (layers.pontos) map.addLayer(layers.pontos);
-        } else {
-            if (layers.pontos) map.removeLayer(layers.pontos);
-        }
-    });
-
-    // Controle separado para rótulos dos pontos
-    document.getElementById('layer-pontos-labels').addEventListener('change', function() {
-        console.log('Evento de mudança nos rótulos dos pontos:', this.checked);
-        if (this.checked) {
-            // Adicionar rótulos dos pontos
-            if (layers.pointLabels) {
-                console.log('Adicionando', layers.pointLabels.length, 'rótulos dos pontos');
-                layers.pointLabels.forEach(label => {
-                    if (!map.hasLayer(label)) map.addLayer(label);
-                });
+    
+    // Controle dos pontos
+    const pontosEl = document.getElementById('layer-pontos');
+    if (pontosEl) {
+        pontosEl.addEventListener('change', function() {
+            if (this.checked) {
+                if (layers.pontos && !map.hasLayer(layers.pontos)) map.addLayer(layers.pontos);
             } else {
-                console.log('Nenhum rótulo de ponto encontrado em layers.pointLabels');
+                if (layers.pontos && map.hasLayer(layers.pontos)) map.removeLayer(layers.pontos);
             }
-        } else {
-            // Remover rótulos dos pontos
-            if (layers.pointLabels) {
-                console.log('Removendo', layers.pointLabels.length, 'rótulos dos pontos');
-                layers.pointLabels.forEach(label => {
-                    if (map.hasLayer(label)) map.removeLayer(label);
-                });
-            }
-        }
-    });
-
-    // Controle da camada de solos
-    document.getElementById('layer-solos').addEventListener('change', function() {
-        if (this.checked) {
-            if (layers.solos) map.addLayer(layers.solos);
-        } else {
-            if (layers.solos) map.removeLayer(layers.solos);
-        }
-    });
+            updatePointLabels();
+        });
+    }
 
     // Controles do mapa
     document.getElementById('zoom-in').addEventListener('click', function() {
@@ -324,27 +259,69 @@ function calculateScale(zoom) {
 // Toggle tela cheia
 function toggleFullscreen() {
     const container = document.querySelector('.container');
-    
-    if (!isFullscreen) {
-        container.classList.add('fullscreen');
-        document.getElementById('fullscreen-btn').innerHTML = '<i class="fas fa-compress"></i> Sair da Tela Cheia';
-        isFullscreen = true;
+    const btn = document.getElementById('fullscreen-btn');
+    if (!document.fullscreenElement) {
+        if (container.requestFullscreen) {
+            container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) { // Safari
+            container.webkitRequestFullscreen();
+        } else if (container.msRequestFullscreen) { // IE11
+            container.msRequestFullscreen();
+        }
+        btn.innerHTML = '<i class="fas fa-compress"></i> Sair da Tela Cheia';
     } else {
-        container.classList.remove('fullscreen');
-        document.getElementById('fullscreen-btn').innerHTML = '<i class="fas fa-expand"></i> Tela Cheia';
-        isFullscreen = false;
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { // Safari
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { // IE11
+            document.msExitFullscreen();
+        }
+        btn.innerHTML = '<i class="fas fa-expand"></i> Tela Cheia';
     }
-    
     // Redimensionar mapa
     setTimeout(() => {
         map.invalidateSize();
     }, 100);
 }
 
+// Atualizar botão ao sair do modo tela cheia manualmente
+if (document.fullscreenEnabled) {
+    document.addEventListener('fullscreenchange', function() {
+        const btn = document.getElementById('fullscreen-btn');
+        if (!document.fullscreenElement) {
+            btn.innerHTML = '<i class="fas fa-expand"></i> Tela Cheia';
+            setTimeout(() => { map.invalidateSize(); }, 100);
+        }
+    });
+}
+
 // Inicializar quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM carregado, inicializando WebGIS...');
     initMap();
+    // Garante que o painel de zonas inicie recolhido
+    const zonasPanel = document.querySelector('.sidebar-section.collapsible');
+    if (zonasPanel) {
+        const content = zonasPanel.querySelector('.collapsible-content');
+        const icon = zonasPanel.querySelector('.fa-chevron-up, .fa-chevron-down');
+        if (content) content.style.display = 'none';
+        if (icon) {
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+    }
+    // Garante que todos os checkboxes das zonas estejam desmarcados
+    [
+        'sisal','baixo-sul','vale-jiquirica','piemonte-paraguacu','bacia-jacuipe',
+        'litoral-norte','portal-sertao','reconcavo','medio-rio-contas','metropolitano-salvador'
+    ].forEach(zona => {
+        const cb = document.getElementById(`layer-zona-${zona}`);
+        if (cb) cb.checked = false;
+    });
+    // Garante que os checkboxes de pontos e marcadores estejam desmarcados por padrão
+    document.getElementById('layer-pontos').checked = false;
+    loadSolos();
 });
 
 // Função para exportar dados (opcional)
@@ -361,281 +338,730 @@ function printMap() {
 let loadedLimiteTotal = false;
 let loadedLimiteZonas = false;
 let loadedPontos = false;
-let loadedSolos = false;
 function tryHideAllExceptLimiteTotalAndSatelite() {
-    if (loadedLimiteTotal && loadedLimiteZonas && loadedPontos && loadedSolos) {
+    if (loadedLimiteTotal && loadedLimiteZonas && loadedPontos) {
         hideAllExceptLimiteTotalAndSatelite();
     }
 }
 
-// Carregar camadas GeoJSON
-function loadGeoJSONLayers() {
-    // Limite Total
+// Carregar Limite Total
+function loadLimiteTotal() {
     fetch('data/tcl_limite_total.geojson')
-        .then(resp => {
-            if (!resp.ok) throw new Error('Erro ao carregar tcl_limite_total.geojson: ' + resp.status);
-            return resp.json();
-        })
+        .then(resp => resp.json())
         .then(data => {
             layers.limiteTotal = L.geoJSON(data, {
                 style: {
-                    color: '#ff0000', // vermelho
+                    color: '#ff0000',
                     weight: 3,
-                    opacity: 1,
-                    fillColor: '#ff0000',
-                    fillOpacity: 0 // totalmente transparente
-                },
-                onEachFeature: function(feature, layer) {
-                    if (feature.properties) {
-                        layer.bindPopup(`
-                            <div class='popup-content'>
-                                <h4>Limite Total</h4>
-                                <pre>${JSON.stringify(feature.properties, null, 2)}</pre>
-                            </div>
-                        `);
-                    }
+                    fill: false
                 }
-            }).addTo(map);
-            bringDataLayersToFront();
-            loadedLimiteTotal = true;
-            tryHideAllExceptLimiteTotalAndSatelite();
-            // Ajustar zoom para mostrar o limite total
-            if (data.features && data.features.length > 0) {
-                map.fitBounds(layers.limiteTotal.getBounds(), { padding: [0, 0] });
+            });
+            if (document.getElementById('layer-limite-total').checked) {
+                layers.limiteTotal.addTo(map);
             }
         })
         .catch(err => {
-            console.error('Erro ao carregar Limite Total:', err);
             alert('Erro ao carregar Limite Total: ' + err.message);
-        });
-
-    // Limite Zonas
-    fetch('data/tcl_limite_zonas.geojson')
-        .then(resp => {
-            if (!resp.ok) throw new Error('Erro ao carregar tcl_limite_zonas.geojson: ' + resp.status);
-            return resp.json();
-        })
-        .then(data => {
-            // Agrupar features por NM_TI
-            const zonasPorNome = {};
-            data.features.forEach(feature => {
-                const nmTi = feature.properties.NM_TI;
-                if (!zonasPorNome[nmTi]) {
-                    zonasPorNome[nmTi] = [];
-                }
-                zonasPorNome[nmTi].push(feature);
-            });
-            // Criar layer group para cada zona
-            Object.keys(zonasPorNome).forEach(nmTi => {
-                const zonaId = nmTi.toLowerCase()
-                    .replace(/\s+/g, '-')
-                    .replace(/[çã]/g, 'c')
-                    .replace(/[áàâ]/g, 'a')
-                    .replace(/[éèê]/g, 'e')
-                    .replace(/[íìî]/g, 'i')
-                    .replace(/[óòô]/g, 'o')
-                    .replace(/[úùû]/g, 'u');
-                const layerGroup = L.layerGroup();
-                zonasPorNome[nmTi].forEach(feature => {
-                    const layer = L.geoJSON(feature, {
-                        style: {
-                            color: '#000000',
-                            weight: 2,
-                            opacity: 1,
-                            fillColor: '#000000',
-                            fillOpacity: 0
-                        },
-                        onEachFeature: function(feature, layer) {
-                            if (feature.properties) {
-                                // Adicionar popup
-                                layer.bindPopup(`
-                                    <div class='popup-content'>
-                                        <h4>Limite Zona</h4>
-                                        <p><strong>NM_TI:</strong> ${feature.properties.NM_TI || 'N/A'}</p>
-                                        <pre>${JSON.stringify(feature.properties, null, 2)}</pre>
-                                    </div>
-                                `);
-                                // Adicionar rótulo com NM_TI
-                                if (feature.properties.NM_TI) {
-                                    const center = layer.getBounds().getCenter();
-                                    const label = L.marker(center, {
-                                        icon: L.divIcon({
-                                            className: 'zone-label',
-                                            html: `<div style=\"padding: 2px 6px; font-size: 12px; font-weight: bold; color: #fff;\">${feature.properties.NM_TI}</div>`,
-                                            iconSize: [100, 20],
-                                            iconAnchor: [50, 10]
-                                        })
-                                    });
-                                    layerGroup.addLayer(label);
-                                }
-                            }
-                        }
-                    });
-                    layerGroup.addLayer(layer);
-                });
-                // Armazenar o layer group
-                layers[`zona-${zonaId}`] = layerGroup;
-                layerGroup.addTo(map);
-            });
-            bringDataLayersToFront();
-            loadedLimiteZonas = true;
-            tryHideAllExceptLimiteTotalAndSatelite();
-        })
-        .catch(err => {
-            console.error('Erro ao carregar Limite Zonas:', err);
-            alert('Erro ao carregar Limite Zonas: ' + err.message);
-        });
-
-    // Pontos
-    fetch('data/pontos_tcl.geojson')
-        .then(resp => {
-            if (!resp.ok) throw new Error('Erro ao carregar pontos_tcl.geojson: ' + resp.status);
-            return resp.json();
-        })
-        .then(data => {
-            layers.pontos = L.geoJSON(data, {
-                pointToLayer: function(feature, latlng) {
-                    return L.circleMarker(latlng, {
-                        radius: 4,
-                        fillColor: '#ff0000',
-                        color: 'transparent',
-                        weight: 0,
-                        opacity: 1,
-                        fillOpacity: 0.8
-                    });
-                },
-                onEachFeature: function(feature, layer) {
-                    if (feature.properties) {
-                        layer.bindPopup(`
-                            <div class='popup-content'>
-                                <h4>Ponto</h4>
-                                <pre>${JSON.stringify(feature.properties, null, 2)}</pre>
-                            </div>
-                        `);
-                        // Adicionar rótulo com código
-                        if (feature.properties.Codigo) {
-                            const label = L.marker(layer.getLatLng(), {
-                                icon: L.divIcon({
-                                    className: 'point-label',
-                                    html: `<div style=\"padding: 2px 4px; font-size: 10px; font-weight: bold; color: #000;\">${feature.properties.Codigo}</div>`,
-                                    iconSize: [80, 16],
-                                    iconAnchor: [40, 20]
-                                })
-                            });
-                            if (!layers.pointLabels) layers.pointLabels = [];
-                            layers.pointLabels.push(label);
-                        }
-                    }
-                }
-            }).addTo(map);
-            bringDataLayersToFront();
-            loadedPontos = true;
-            tryHideAllExceptLimiteTotalAndSatelite();
-        })
-        .catch(err => {
-            console.error('Erro ao carregar Pontos:', err);
-            alert('Erro ao carregar Pontos: ' + err.message);
-        });
-
-    // Solos
-    fetch('data/solos_tcl.geojson')
-        .then(resp => {
-            if (!resp.ok) throw new Error('Erro ao carregar solos_tcl.geojson: ' + resp.status);
-            return resp.json();
-        })
-        .then(data => {
-            // Definir paleta de cores para as ordens de solo
-            const ordemColors = {
-                'ARGISSOLO': '#8B4513',      // Marrom escuro
-                'CAMBISSOLO': '#D2691E',     // Marrom chocolate
-                'CHERNOSSOLO': '#654321',    // Marrom muito escuro
-                'ESPODOSSOLO': '#F4A460',    // Marrom areia
-                'GLEISSOLO': '#2F4F4F',      // Cinza escuro
-                'LATOSSOLO': '#CD853F',      // Marrom peru
-                'LUVISSOLO': '#A0522D',      // Marrom sienna
-                'NEOSSOLO': '#DEB887',       // Marrom trigo
-                'NITOSSOLO': '#8B7355',      // Marrom bronze
-                'ORGANOSSOLO': '#228B22',    // Verde floresta
-                'PLANOSSOLO': '#B8860B',     // Marrom dourado escuro
-                'PLINTOSSOLO': '#DAA520',    // Marrom dourado
-                'VERTISSOLO': '#556B2F'      // Verde oliva escuro
-            };
-
-            layers.solos = L.geoJSON(data, {
-                style: function(feature) {
-                    const ordem = feature.properties.ordem;
-                    const color = ordemColors[ordem] || '#808080'; // Cinza padrão se não encontrar
-                    
-                    return {
-                        color: '#000000',
-                        weight: 1,
-                        opacity: 0.8,
-                        fillColor: color,
-                        fillOpacity: 0.6
-                    };
-                },
-                onEachFeature: function(feature, layer) {
-                    if (feature.properties) {
-                        layer.bindPopup(`
-                            <div class='popup-content'>
-                                <h4>Solos</h4>
-                                <p><strong>Ordem:</strong> ${feature.properties.ordem || 'N/A'}</p>
-                                <p><strong>Subordem:</strong> ${feature.properties.subordem || 'N/A'}</p>
-                                <p><strong>Grande Grupo:</strong> ${feature.properties.grande_gru || 'N/A'}</p>
-                                <p><strong>Subgrupo:</strong> ${feature.properties.subgrupos || 'N/A'}</p>
-                                <p><strong>Textura:</strong> ${feature.properties.textura || 'N/A'}</p>
-                                <p><strong>Relevo:</strong> ${feature.properties.relevo || 'N/A'}</p>
-                                <p><strong>Área (km²):</strong> ${feature.properties.ar_poli_km ? feature.properties.ar_poli_km.toFixed(2) : 'N/A'}</p>
-                            </div>
-                        `);
-                    }
-                }
-            }).addTo(map);
-            bringDataLayersToFront();
-            loadedSolos = true;
-            tryHideAllExceptLimiteTotalAndSatelite();
-        })
-        .catch(err => {
-            console.error('Erro ao carregar Solos:', err);
-            alert('Erro ao carregar Solos: ' + err.message);
+            console.error(err);
         });
 }
 
-// Após carregar todas as camadas, remova todas as camadas do mapa que não sejam Limite Total e Satélite
-function hideAllExceptLimiteTotalAndSatelite() {
-    // Basemaps
-    Object.keys(layers).forEach(key => {
-        if (key !== 'satellite' && key !== 'limiteTotal') {
-            if (map.hasLayer(layers[key])) {
-                map.removeLayer(layers[key]);
-            }
-        }
-    });
-    // Zonas
-    Object.keys(layers).forEach(key => {
-        if (key.startsWith('zona-')) {
-            if (map.hasLayer(layers[key])) {
-                map.removeLayer(layers[key]);
-            }
-        }
-    });
-    // Pontos
-    if (layers.pontos && map.hasLayer(layers.pontos)) {
-        map.removeLayer(layers.pontos);
-    }
-    // Rótulos dos pontos
+// Carregar Limite Zonas
+function loadLimiteZonas() {
+    fetch('data/tcl_limite_zonas.geojson')
+        .then(resp => resp.json())
+        .then(data => {
+            // Mapear regiões por NM_TI
+            const regioes = {};
+            data.features.forEach(feature => {
+                const nome = feature.properties && feature.properties.NM_TI;
+                if (nome) {
+                    if (!regioes[nome]) regioes[nome] = [];
+                    regioes[nome].push(feature);
+                }
+            });
+            // Criar layers para cada região
+            layers.zonas = {};
+            layers.zonasLabels = {};
+            Object.keys(regioes).forEach(nome => {
+                // Polígono
+                layers.zonas[nome] = L.geoJSON({type: 'FeatureCollection', features: regioes[nome]}, {
+                    style: {
+                        color: '#000',
+                        weight: 1.5,
+                        fill: false
+                    }
+                });
+                // Centroide para o nome
+                const feature = regioes[nome][0];
+                let center = null;
+                if (feature.geometry.type === 'Polygon') {
+                    const coords = feature.geometry.coordinates[0];
+                    let x = 0, y = 0;
+                    coords.forEach(c => { x += c[0]; y += c[1]; });
+                    x /= coords.length; y /= coords.length;
+                    center = [y, x];
+                } else if (feature.geometry.type === 'MultiPolygon') {
+                    // Pega o maior polígono
+                    let maxPoly = feature.geometry.coordinates[0];
+                    feature.geometry.coordinates.forEach(poly => {
+                        if (poly[0].length > maxPoly[0].length) maxPoly = poly;
+                    });
+                    const coords = maxPoly[0];
+                    let x = 0, y = 0;
+                    coords.forEach(c => { x += c[0]; y += c[1]; });
+                    x /= coords.length; y /= coords.length;
+                    center = [y, x];
+                }
+                if (center) {
+                    layers.zonasLabels[nome] = L.marker(center, {
+                        icon: L.divIcon({
+                            className: '',
+                            html: `<span style=\"color:#fff;font-size:12px;font-weight:bold;\">${nome}</span>`,
+                            iconSize: [120, 24],
+                            iconAnchor: [60, 12]
+                        })
+                    });
+                }
+            });
+            // Gerar checkboxes dinamicamente
+            const container = document.getElementById('zonas-checkbox-list');
+            container.innerHTML = '';
+            Object.keys(regioes).forEach(nome => {
+                const id = `layer-zona-${nome.replace(/\s+/g, '-').toLowerCase()}`;
+                const label = document.createElement('label');
+                label.className = 'layer-checkbox';
+                label.innerHTML = `<input type="checkbox" id="${id}"><span class="checkmark"></span>${nome}`;
+                container.appendChild(label);
+            });
+            // Listeners para cada checkbox
+            Object.keys(regioes).forEach(nome => {
+                const id = `layer-zona-${nome.replace(/\s+/g, '-').toLowerCase()}`;
+                const cb = document.getElementById(id);
+                if (cb) {
+                    cb.checked = false;
+                    cb.addEventListener('change', function() {
+                        if (this.checked) {
+                            if (layers.zonas[nome]) map.addLayer(layers.zonas[nome]);
+                            if (layers.zonasLabels[nome]) map.addLayer(layers.zonasLabels[nome]);
+                        } else {
+                            if (layers.zonas[nome]) map.removeLayer(layers.zonas[nome]);
+                            if (layers.zonasLabels[nome]) map.removeLayer(layers.zonasLabels[nome]);
+                        }
+                    });
+                }
+            });
+        })
+        .catch(err => {
+            alert('Erro ao carregar Regiões Territoriais: ' + err.message);
+            console.error(err);
+        });
+}
+
+// Carregar Pontos
+function loadPontos() {
+    fetch('data/pontos_tcl.geojson')
+        .then(resp => resp.json())
+        .then(data => {
+            layers.pontos = L.geoJSON(data, {
+                pointToLayer: function (feature, latlng) {
+                    return L.circleMarker(latlng, {
+                        radius: 3.5,
+                        fillColor: '#ff0000',
+                        color: '#ff0000',
+                        weight: 0.5,
+                        opacity: 1,
+                        fillOpacity: 1
+                    });
+                },
+                onEachFeature: function (feature, layer) {
+                    if (feature.properties) {
+                        layer.bindPopup(`<div class='popup-content'><h4>Ponto</h4><p><strong>Código:</strong> ${feature.properties.Codigo || 'N/A'}</p></div>`);
+                    }
+                }
+            });
+            // Rótulos dos pontos (texto preto, sem fundo, sem classe)
+            layers.pointLabels = [];
+            data.features.forEach(feature => {
+                if (feature.properties && feature.properties.Codigo && feature.geometry) {
+                    const coords = feature.geometry.coordinates;
+                    const label = L.marker([coords[1], coords[0]], {
+                        icon: L.divIcon({
+                            className: '',
+                            html: `<span style=\"color:#000;font-size:11px;font-weight:bold;\">${feature.properties.Codigo}</span>`,
+                            iconSize: [60, 20],
+                            iconAnchor: [30, 25]
+                        })
+                    });
+                    layers.pointLabels.push(label);
+                }
+            });
+            updatePointLabels();
+        })
+        .catch(err => {
+            alert('Erro ao carregar Pontos: ' + err.message);
+            console.error(err);
+        });
+}
+
+function updatePointLabels() {
+    const pontosChecked = document.getElementById('layer-pontos').checked;
     if (layers.pointLabels) {
         layers.pointLabels.forEach(label => {
-            if (map.hasLayer(label)) map.removeLayer(label);
+            if (pontosChecked) {
+                if (!map.hasLayer(label)) map.addLayer(label);
+            } else {
+                if (map.hasLayer(label)) map.removeLayer(label);
+            }
         });
-    }
-    // Solos
-    if (layers.solos && map.hasLayer(layers.solos)) {
-        map.removeLayer(layers.solos);
     }
 }
 
 L.tileLayer('https://tiles.opendem.info/tiles/asterh/{z}/{x}/{y}.png', {
     attribution: 'ASTER GDEM, OpenDEM',
     maxZoom: 15
-}).addTo(map); 
+}).addTo(map);
+
+// NÃO expandir o painel de zonas por padrão
+// Desmarcar todas as zonas ao iniciar
+['sisal','baixo-sul','vale-jiquirica','piemonte-paraguacu','bacia-jacuipe','litoral-norte','portal-sertao','reconcavo','medio-rio-contas','metropolitano-salvador'].forEach(zona => {
+    const cb = document.getElementById(`layer-zona-${zona}`);
+    if (cb) cb.checked = false;
+});
+
+function loadSolos() {
+    fetch('data/solos_tcl.geojson')
+        .then(resp => resp.json())
+        .then(data => {
+            // Mapear por ordem e subordem
+            const solos = {};
+            data.features.forEach(feature => {
+                const ordem = feature.properties && feature.properties.ordem;
+                const subordem = feature.properties && feature.properties.subordem;
+                if (ordem && subordem) {
+                    if (!solos[ordem]) solos[ordem] = {};
+                    if (!solos[ordem][subordem]) solos[ordem][subordem] = [];
+                    solos[ordem][subordem].push(feature);
+                }
+            });
+            // Criar layers para cada subordem
+            layers.solos = {};
+            console.log('=== INICIANDO PROCESSAMENTO DE SOLOS ===');
+            Object.keys(solos).forEach(ordem => {
+                console.log(`Processando ordem: ${ordem}`);
+                Object.keys(solos[ordem]).forEach(subordem => {
+                    const key = `${ordem}||${subordem}`;
+                    const ordemNorm = ordem.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-\s]/g, '').toUpperCase();
+                    const subordemNorm = subordem.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-\s]/g, '').toUpperCase();
+                    console.log('Testando bloco:', ordem, subordem, '|', ordemNorm, subordemNorm);
+                    console.log('Criando layer para:', ordem, subordem);
+                    // Bloco ESPECÍFICO: PLANOSSOLO HÁPLICO
+                    if (ordemNorm === 'PLANOSSOLO' && subordemNorm === 'HAPLICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#FFE6B4', // Bege claro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO PLANOSSOLO HÁPLICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para PLANOSSOLO HÁPLICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: PLANOSSOLO NÁTRICO
+                    else if (ordemNorm === 'PLANOSSOLO' && subordemNorm === 'NATRICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#E0E0E0', // Cinza claro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO PLANOSSOLO NÁTRICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para PLANOSSOLO NÁTRICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: GLEISSOLO HÁPLICO
+                    else if (ordemNorm === 'GLEISSOLO' && subordemNorm === 'HAPLICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#99CCFF', // Azul claro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO GLEISSOLO HÁPLICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para GLEISSOLO HÁPLICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: GLEISSOLO SÁLICO
+                    else if (ordemNorm === 'GLEISSOLO' && subordemNorm === 'SALICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#CCFFFF', // Azul muito claro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO GLEISSOLO SÁLICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para GLEISSOLO SÁLICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: GLEISSOLO TIOMÓRFICO
+                    else if (ordemNorm === 'GLEISSOLO' && subordemNorm === 'TIOMORFICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#606080', // Cinza azulado escuro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO GLEISSOLO TIOMÓRFICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para GLEISSOLO TIOMÓRFICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco de decisão único para simbologia dos solos
+                    else if (ordemNorm === 'ESPODOSSOLO' && subordemNorm === 'FERRIHUMILUVICO') {
+                        console.log('>> BLOCO ESPODOSSOLO FERRI-HUMILÚVICO');
+                        const style = {
+                            fill: true,
+                            fillColor: '#A52A2A', // Marrom
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log(`  ✓ Aplicando cor ESPECIAL para ESPODOSSOLO FERRI-HUMILÚVICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    } else if (ordemNorm === 'ESPODOSSOLO' && subordemNorm === 'HUMILUVICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#404040', // Cinza escuro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO ESPODOSSOLO HUMILÚVICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para ESPODOSSOLO HUMILÚVICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    } else if (ordemNorm === 'ARGISSOLO' && subordemNorm === 'VERMELHOAMARELO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#FFB266', // Laranja claro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO ARGISSOLO VERMELHO-AMARELO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para ARGISSOLO VERMELHO-AMARELO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    } else if (ordemNorm === 'ARGISSOLO' && subordemNorm === 'AMARELO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#FFFF66', // Amarelo
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO ARGISSOLO AMARELO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para ARGISSOLO AMARELO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    } else if (ordemNorm === 'ARGISSOLO' && subordemNorm === 'VERMELHO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#CC6666', // Vermelho
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO ARGISSOLO VERMELHO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para ARGISSOLO VERMELHO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    } else if (ordemNorm === 'ARGISSOLO') {
+                        const style = {
+                            color: 'transparent',
+                            weight: 0,
+                            fill: true,
+                            fillColor: '#008000', // Verde padrão
+                            fillOpacity: 1
+                        };
+                        console.log('>> BLOCO ARGISSOLO GENÉRICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor VERDE para ARGISSOLO (${subordem}) | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style
+                        });
+                    } else if (subordemNorm === 'LITOLICO') {
+                        const style = {
+                            color: 'transparent',
+                            weight: 0,
+                            fill: true,
+                            fillColor: '#4D4D4D',
+                            fillOpacity: 1
+                        };
+                        console.log('>> BLOCO LITÓLICO', ordem, subordem);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style
+                        });
+                    } else if (subordemNorm === 'QUARTZARENICO') {
+                        const style = {
+                            color: 'transparent',
+                            weight: 0,
+                            fill: true,
+                            fillColor: '#FFFF99',
+                            fillOpacity: 1
+                        };
+                        console.log('>> BLOCO QUARTZARÊNICO', ordem, subordem);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style
+                        });
+                    } else if (subordemNorm === 'REGOLITICO') {
+                        const style = {
+                            color: 'transparent',
+                            weight: 0,
+                            fill: true,
+                            fillColor: '#D2B48C',
+                            fillOpacity: 1
+                        };
+                        console.log('>> BLOCO REGOLÍTICO', ordem, subordem);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style
+                        });
+                    } else if (subordemNorm === 'VERMELHOAMARELO') {
+                        const style = {
+                            color: 'transparent',
+                            weight: 0,
+                            fill: true,
+                            fillColor: '#FFB266', // Laranja claro
+                            fillOpacity: 1
+                        };
+                        console.log('>> BLOCO VERMELHO-AMARELO GERAL', ordem, subordem);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style
+                        });
+                    } else if (subordemNorm === 'VERMELHO') {
+                        const style = {
+                            color: 'transparent',
+                            weight: 0,
+                            fill: true,
+                            fillColor: '#CC3300',
+                            fillOpacity: 1
+                        };
+                        console.log('>> BLOCO VERMELHO GERAL', ordem, subordem);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style
+                        });
+                    } else if (subordemNorm === 'AMARELO') {
+                        const style = {
+                            color: 'transparent',
+                            weight: 0,
+                            fill: true,
+                            fillColor: '#FFFF66', // Amarelo claro
+                            fillOpacity: 1
+                        };
+                        console.log('>> BLOCO AMARELO GERAL', ordem, subordem);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style
+                        });
+                    } else {
+                        const style = {
+                            color: '#008000',
+                            weight: 1.5,
+                            fill: false
+                        };
+                        console.log('>> BLOCO PADRÃO', ordem, subordem);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style
+                        });
+                    }
+                    // Bloco ESPECÍFICO: LUVISSOLO CRÔMICO
+                    if (ordemNorm === 'LUVISSOLO' && subordemNorm === 'CROMICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#CC3300', // Vermelho escuro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO LUVISSOLO CRÔMICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para LUVISSOLO CRÔMICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: LUVISSOLO HÁPLICO
+                    else if (ordemNorm === 'LUVISSOLO' && subordemNorm === 'HAPLICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#D28C69', // Bege avermelhado
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO LUVISSOLO HÁPLICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para LUVISSOLO HÁPLICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: VERTISSOLO HÁPLICO
+                    if (ordemNorm === 'VERTISSOLO' && subordemNorm === 'HAPLICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#808080', // Cinza
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO VERTISSOLO HÁPLICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para VERTISSOLO HÁPLICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: VERTISSOLO ÉBÂNICO
+                    else if (ordemNorm === 'VERTISSOLO' && subordemNorm === 'EBANICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#333333', // Cinza escuro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO VERTISSOLO ÉBÂNICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para VERTISSOLO ÉBÂNICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: CAMBISSOLO HÁPLICO
+                    if (ordemNorm === 'CAMBISSOLO' && subordemNorm === 'HAPLICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#BE8C64', // Bege médio
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO CAMBISSOLO HÁPLICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para CAMBISSOLO HÁPLICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                    // Bloco ESPECÍFICO: CHERNOSSOLO ARGILÚVICO
+                    if (ordemNorm === 'CHERNOSSOLO' && subordemNorm === 'ARGILUVICO') {
+                        const style = {
+                            fill: true,
+                            fillColor: '#553C28', // Marrom escuro
+                            fillOpacity: 1,
+                            color: 'transparent',
+                            weight: 0
+                        };
+                        console.log('>> BLOCO CHERNOSSOLO ARGILÚVICO', ordem, subordem);
+                        console.log(`  ✓ Aplicando cor ESPECIAL para CHERNOSSOLO ARGILÚVICO | Style:`, style);
+                        layers.solos[key] = L.geoJSON({type: 'FeatureCollection', features: solos[ordem][subordem]}, {
+                            style: style,
+                            onEachFeature: function (feature, layer) {
+                                layer.setStyle(style);
+                            }
+                        });
+                    }
+                });
+            });
+            console.log('=== FIM DO PROCESSAMENTO DE SOLOS ===');
+            // Gerar painel dinâmico
+            let container = document.getElementById('solos-checkbox-list');
+            if (!container) {
+                // Criar painel se não existir
+                const sidebar = document.querySelector('.sidebar .layer-controls');
+                const section = document.createElement('div');
+                section.className = 'sidebar-section collapsible';
+                section.innerHTML = `
+                    <h4 class=\"collapsible-header\" style=\"font-size: 1rem; margin: 0; padding: 5px 0 5px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;\">
+                        <i class=\"fas fa-chevron-down\"></i>
+                        <span>Classes de Solos</span>
+                    </h4>
+                    <div class=\"collapsible-content\" id=\"solos-checkbox-list\" style=\"display: none; flex-direction: column; gap: 8px; margin-left: 10px;\"></div>
+                `;
+                sidebar.appendChild(section);
+                // Ativar expansão/retração do painel geral
+                section.querySelector('.collapsible-header').addEventListener('click', function() {
+                    const content = section.querySelector('.collapsible-content');
+                    const icon = section.querySelector('.fa-chevron-down, .fa-chevron-up');
+                    if (content.style.display === 'none' || content.style.display === '') {
+                        content.style.display = 'flex';
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    } else {
+                        content.style.display = 'none';
+                        icon.classList.remove('fa-chevron-up');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                });
+                container = section.querySelector('#solos-checkbox-list');
+            }
+            container.innerHTML = '';
+            // Para cada ordem, criar painel expansível
+            Object.keys(solos).forEach(ordem => {
+                const ordemId = `ordem-${ordem.replace(/\s+/g, '-').toLowerCase()}`;
+                const ordemSection = document.createElement('div');
+                ordemSection.className = 'sidebar-section collapsible';
+                ordemSection.innerHTML = `
+                    <h5 class=\"collapsible-header\" style=\"font-size: 0.98rem; margin: 0; padding: 4px 0 4px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;\">
+                        <i class=\"fas fa-chevron-down\"></i>
+                        <span>${ordem}</span>
+                    </h5>
+                    <div class=\"collapsible-content\" id=\"subordens-list-${ordemId}\" style=\"display: none; flex-direction: column; gap: 6px; margin-left: 10px;\"></div>
+                `;
+                container.appendChild(ordemSection);
+                // Ativar expansão/retração da ordem
+                ordemSection.querySelector('.collapsible-header').addEventListener('click', function() {
+                    const content = ordemSection.querySelector('.collapsible-content');
+                    const icon = ordemSection.querySelector('.fa-chevron-down, .fa-chevron-up');
+                    if (content.style.display === 'none' || content.style.display === '') {
+                        content.style.display = 'flex';
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    } else {
+                        content.style.display = 'none';
+                        icon.classList.remove('fa-chevron-up');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                });
+                // Adicionar checkbox 'Selecionar todos'
+                const subContainer = ordemSection.querySelector('.collapsible-content');
+                const selectAllId = `select-all-${ordemId}`;
+                const selectAllLabel = document.createElement('label');
+                selectAllLabel.className = 'layer-checkbox';
+                selectAllLabel.innerHTML = `<input type="checkbox" id="${selectAllId}"><span class="checkmark"></span><strong>Selecionar todos</strong>`;
+                subContainer.appendChild(selectAllLabel);
+                // Adicionar checkboxes das subordens
+                Object.keys(solos[ordem]).forEach(subordem => {
+                    const key = `${ordem}||${subordem}`;
+                    const id = `layer-solo-${ordem.replace(/\s+/g, '-').toLowerCase()}-${subordem.replace(/\s+/g, '-').toLowerCase()}`;
+                    const label = document.createElement('label');
+                    label.className = 'layer-checkbox';
+                    label.innerHTML = `<input type="checkbox" id="${id}"><span class="checkmark"></span>${subordem}`;
+                    subContainer.appendChild(label);
+                });
+            });
+            // Listeners para cada subordem e para o 'Selecionar todos'
+            Object.keys(solos).forEach(ordem => {
+                const ordemId = `ordem-${ordem.replace(/\s+/g, '-').toLowerCase()}`;
+                const selectAllId = `select-all-${ordemId}`;
+                const subordemIds = Object.keys(solos[ordem]).map(subordem => `layer-solo-${ordem.replace(/\s+/g, '-').toLowerCase()}-${subordem.replace(/\s+/g, '-').toLowerCase()}`);
+                // Listener do 'Selecionar todos'
+                const selectAllCb = document.getElementById(selectAllId);
+                if (selectAllCb) {
+                    selectAllCb.checked = false;
+                    selectAllCb.addEventListener('change', function() {
+                        subordemIds.forEach(id => {
+                            const cb = document.getElementById(id);
+                            if (cb) {
+                                cb.checked = selectAllCb.checked;
+                                const key = cb.getAttribute('id').replace('layer-solo-', '').split('-');
+                                // Reconstruir ordem e subordem a partir do id
+                                let ordemKey = ordem.replace(/\s+/g, '-').toLowerCase();
+                                let subordemKey = key.slice(ordemKey.split('-').length).join('-');
+                                // Procurar subordem original
+                                let subordemOriginal = Object.keys(solos[ordem]).find(s => s.replace(/\s+/g, '-').toLowerCase() === subordemKey);
+                                let fullKey = `${ordem}||${subordemOriginal}`;
+                                if (selectAllCb.checked) {
+                                    if (layers.solos[fullKey] && !map.hasLayer(layers.solos[fullKey])) map.addLayer(layers.solos[fullKey]);
+                                } else {
+                                    if (layers.solos[fullKey] && map.hasLayer(layers.solos[fullKey])) map.removeLayer(layers.solos[fullKey]);
+                                }
+                            }
+                        });
+                    });
+                }
+                // Listeners para cada subordem
+                Object.keys(solos[ordem]).forEach(subordem => {
+                    const key = `${ordem}||${subordem}`;
+                    const id = `layer-solo-${ordem.replace(/\s+/g, '-').toLowerCase()}-${subordem.replace(/\s+/g, '-').toLowerCase()}`;
+                    const cb = document.getElementById(id);
+                    if (cb) {
+                        cb.checked = false;
+                        cb.addEventListener('change', function() {
+                            if (this.checked) {
+                                if (layers.solos[key]) map.addLayer(layers.solos[key]);
+                            } else {
+                                if (layers.solos[key]) map.removeLayer(layers.solos[key]);
+                            }
+                            // Atualizar o 'Selecionar todos' conforme o estado das subordens
+                            const allChecked = subordemIds.every(id2 => document.getElementById(id2).checked);
+                            selectAllCb.checked = allChecked;
+                        });
+                    }
+                });
+            });
+        })
+        .catch(err => {
+            alert('Erro ao carregar Classes de Solos: ' + err.message);
+            console.error(err);
+        });
+}
