@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "ponto_resul",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "OBJECTID": 1, "X": 434493.0, "Y": 8865614.0, "ID": "TCL 01", "Prof": "0-20", "Ti": 7511.3, "V": 161.1, "Cr": 48.1, "Mn": 916.83, "Fe": 41055.37, "Co": "< LOD", "Ni": 44.0, "Cu": 64.44, "Zn": 59.99, "As_": "< LOD", "Rb": "39,72", "Sr": 131.59, "Y1": 2.88, "Zr": 299.91, "pH": "6,4", "Eh": "3,3", "Al": 12345, "Pb": "234", "Ba": "435" }, "geometry": { "type": "Point", "coordinates": [ -39.598190330999955, -10.261500004999959 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 2, "X": 434493.0, "Y": 8865614.0, "ID": "TCL 01", "Prof": "50-70", "Ti": 7523.43, "V": 149.12, "Cr": 55.9, "Mn": 1066.03, "Fe": 43779.18, "Co": "< LOD", "Ni": 47.0, "Cu": 67.71, "Zn": 66.87, "As_": "< LOD", "Rb": "< LOD", "Sr": 47.24, "Y1": 152.57, "Zr": 3.26, "pH": "6,2", "Eh": "4,4", "Al": 7689, "Pb": "546", "Ba": "343" }, "geometry": { "type": "Point", "coordinates": [ -39.598190330999955, -10.261500004999959 ] } }
+]
+}

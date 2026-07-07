@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+
+
+
+<html lang="pt-BR">
+
+
+
+<head>
+
+
+
+    <meta charset="UTF-8">
+
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+    <title>WebGIS - Centro-Leste da Bahia</title>
+
+
+
+    
+
+
+
+    <!-- Leaflet CSS -->
+
+
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+
+
+    
+
+
+
+    <!-- Font Awesome para ícones -->
+
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+
+
+    
+
+
+
+    <!-- CSS personalizado -->
+
+
+
+    <link rel="stylesheet" href="styles.css">
+
+
+
+</head>
+
+
+
+<body>
+
+
+
+    <div id="splash-overlay">
+
+
+
+        <div class="splash-spinner"></div>
+
+
+
+        <div class="splash-title-vrqs">VRQs</div>
+
+
+
+        <div class="splash-title-centro">CENTRO-LESTE BAIANO</div>
+
+
+
+    </div>
+
+
+
+    <div class="container">
+
+
+
+        <!-- Header -->
+
+
+
+        <header class="header" style="display: flex; align-items: center; justify-content: space-between;">
+
+
+
+            <div style="flex:1; text-align: left; font-size: 1.5rem; font-weight: bold; color: #fff; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
+
+                <div>
+
+                    <i class="fas fa-map"></i> WebGIS
+
+                </div>
+
+                <p style="margin: 0; font-size: 0.9rem; font-weight: 500; color: #fff;">
+
+                    Metais em Solos
+
+                </p>
+
+            </div>
+
+
+
+            <div style="flex:2; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-left: 40px;">
+
+                <h1 class="header-title" style="margin: 0; font-size: 1.4rem; font-weight: bold; color: #fff;">
+
+                    TERRITÓRIO CENTRO-LESTE BAIANO
+
+                </h1>
+
+                <p style="margin: 0; font-size: 0.9rem; font-weight: 500; color: #fff;">
+
+                    Valores de Referência de Qualidade - Solos
+
+                </p>
+
+            </div>
+
+
+
+            <div class="header-controls" style="flex:1; text-align: right;">
+
+
+
+                <button id="fullscreen-btn" class="btn btn-secondary">
+
+
+
+                    <i class="fas fa-expand"></i> Tela Cheia
+
+
+
+                </button>
+
+
+
+            </div>
+
+
+
+        </header>
+
+
+
+
+
+
+
+        <!-- Sidebar -->
+
+
+
+        <aside class="sidebar">
+
+
+
+            <div class="sidebar-section">
+
+
+
+                <h3><i class="fas fa-database"></i> Camadas de Dados</h3>
+
+
+
+                <div class="layer-controls">
+
+
+
+                    <label class="layer-checkbox">
+
+
+
+                        <input type="checkbox" id="layer-limite-total" checked>
+
+
+
+                        <span class="checkmark"></span>
+
+
+
+                        Limite Geral Centro-Leste
+
+
+
+                    </label>
+
+
+
+                    <div class="sidebar-section collapsible">
+
+
+
+                        <h4 class="collapsible-header" style="font-size: 1rem; margin: 0; padding: 5px 0 5px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
+
+
+
+                            <i class="fas fa-map-marked-alt"></i>
+
+
+
+                            <i class="fas fa-chevron-down"></i>
+
+
+
+                            <span>Regiões Territoriais</span>
+
+
+
+                        </h4>
+
+
+
+                        <div class="collapsible-content" id="zonas-checkbox-list" style="display: none; flex-direction: column; gap: 8px; margin-left: 10px;">
+
+
+
+                            <!-- Checkboxes das regiões serão inseridos via JS -->
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                    <div class="sidebar-section collapsible">
+
+
+
+                        <h4 class="collapsible-header" style="font-size: 1rem; margin: 0; padding: 5px 0 5px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
+
+
+
+                            <i class="fas fa-map-pin"></i>
+
+
+
+                            <i class="fas fa-chevron-down"></i>
+
+
+
+                            <span>Controle de Pontos</span>
+
+
+
+                        </h4>
+
+
+
+                        <div class="collapsible-content" id="pontos-checkbox-list" style="display: none; flex-direction: column; gap: 8px; margin-left: 10px;">
+
+
+
+                            <label class="layer-checkbox">
+
+
+
+                                <input type="checkbox" id="layer-pontos">
+
+
+
+                                <span class="checkmark"></span>
+
+
+
+                                Pontos
+
+
+
+                            </label>
+
+
+
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef;">
+
+
+
+                                <div style="margin-bottom: 8px;">
+
+
+
+                                    <input type="text" id="search-input" placeholder="Buscar ponto..." style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 12px;">
+
+
+
+                                </div>
+
+
+
+                                <button id="search-btn" style="width: 100%; padding: 6px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+
+
+
+                                    <i class="fas fa-search"></i> Buscar
+
+
+
+                                </button>
+
+
+
+                                <div id="search-results" style="margin-top: 8px; max-height: 150px; overflow-y: auto;"></div>
+
+
+
+                            </div>
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                    <div class="sidebar-section collapsible">
+
+
+
+                        <h4 class="collapsible-header" style="font-size: 1rem; margin: 0; padding: 5px 0 5px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
+
+
+
+                            <i class="fas fa-mountain"></i>
+
+
+
+                            <i class="fas fa-chevron-down"></i>
+
+
+
+                            <span>Dominios Geologicos</span>
+
+
+
+                        </h4>
+
+
+
+                        <div class="collapsible-content" id="geomorf-checkbox-list" style="display: none; flex-direction: column; gap: 8px; margin-left: 10px;">
+
+
+
+                            <!-- Checkboxes por nm_dominio (preenchidos via JS) -->
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                    <div class="sidebar-section collapsible">
+
+
+
+                        <h4 class="collapsible-header" style="font-size: 1rem; margin: 0; padding: 5px 0 5px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
+
+
+
+                            <i class="fas fa-layer-group"></i>
+
+
+
+                            <i class="fas fa-chevron-down"></i>
+
+
+
+                            <span>Geologia</span>
+
+
+
+                        </h4>
+
+
+
+                        <div class="collapsible-content" id="geologia-checkbox-list" style="display: none; flex-direction: column; gap: 8px; margin-left: 10px;">
+
+
+
+                            <!-- Checkboxes por NOME UNIDA (preenchidos via JS) -->
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                    <div class="sidebar-section collapsible">
+
+
+
+                        <h4 class="collapsible-header" style="font-size: 1rem; margin: 0; padding: 5px 0 5px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
+
+
+
+                            <i class="fas fa-chart-bar"></i>
+
+
+
+                            <i class="fas fa-chevron-down"></i>
+
+
+
+                            <span>RESULTADOS</span>
+
+
+
+                        </h4>
+
+
+
+                        <div class="collapsible-content" id="xrf-checkbox-list" style="display: none; flex-direction: column; gap: 8px; margin-left: 10px;">
+
+
+
+                            <label class="layer-checkbox">
+
+
+
+                                <input type="checkbox" id="layer-xrf">
+
+
+
+                                <span class="checkmark"></span>
+
+
+
+                                Resultados
+
+
+
+                            </label>
+
+
+
+                            <div class="layer-observation">
+
+
+
+                                <p style="margin:0 0 4px 0;font-weight:600;">Observação:</p>
+
+
+
+                                <ul style="margin:0;padding-left:18px;line-height:1.4;">
+
+
+
+                                    <li>Resultados Físicos</li>
+
+
+
+                                    <li>Teores Totais (XRF)</li>
+
+
+
+                                    <li>Teores Parciais (USEPA 3051A)</li>
+
+
+
+                                </ul>
+
+
+
+                            </div>
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div class="sidebar-section collapsible">
+
+
+
+                <h3 class="collapsible-header"><i class="fas fa-layer-group"></i> Mapas de Fundo <i class="fas fa-chevron-down"></i></h3>
+
+
+
+                <div class="basemap-controls collapsible-content" style="display: none;">
+
+
+
+                    <label class="layer-checkbox">
+
+
+
+                        <input type="checkbox" class="basemap-checkbox" data-basemap="osm">
+
+
+
+                        <span class="checkmark"></span>
+
+
+
+                        OpenStreetMap
+
+
+
+                    </label>
+
+
+
+                    <label class="layer-checkbox">
+
+
+
+                        <input type="checkbox" class="basemap-checkbox" data-basemap="satellite">
+
+
+
+                        <span class="checkmark"></span>
+
+
+
+                        Satélite
+
+
+
+                    </label>
+
+
+
+                    <label class="layer-checkbox">
+
+
+
+                        <input type="checkbox" class="basemap-checkbox" data-basemap="topo">
+
+
+
+                        <span class="checkmark"></span>
+
+
+
+                        Topográfico
+
+
+
+                    </label>
+
+
+
+                    <label class="layer-checkbox">
+
+
+
+                        <input type="checkbox" class="basemap-checkbox" data-basemap="newpaper" checked>
+
+
+
+                        <span class="checkmark"></span>
+
+
+
+                        NewPaper Maps
+
+
+
+                    </label>
+
+
+
+                    <label class="layer-checkbox">
+
+
+
+                        <input type="checkbox" class="basemap-checkbox" data-basemap="modernantique">
+
+
+
+                        <span class="checkmark"></span>
+
+
+
+                        Modern Antique Map
+
+
+
+                    </label>
+
+
+
+                    <label class="layer-checkbox">
+
+
+
+                        <input type="checkbox" class="basemap-checkbox" data-basemap="streetnight">
+
+
+
+                        <span class="checkmark"></span>
+
+
+
+                        Street (night)
+
+
+
+                    </label>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div class="sidebar-section collapsible">
+
+
+
+                <h3 class="collapsible-header"><i class="fas fa-info-circle"></i> Informações <i class="fas fa-chevron-down"></i></h3>
+
+
+
+                <div class="collapsible-content" style="display: none;">
+
+
+
+                    <div class="info-panel">
+
+
+
+                        <p><strong>Coordenadas:</strong></p>
+
+
+
+                        <p id="coordinates">Clique no mapa</p>
+
+
+
+                        <p><strong>Zoom:</strong> <span id="zoom-level">5</span></p>
+
+
+
+                        <p><strong>Escala:</strong> <span id="scale">1:1000000</span></p>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div class="sidebar-section collapsible">
+
+
+
+                <h3 class="collapsible-header"><i class="fas fa-info"></i> Informações do Projeto <i class="fas fa-chevron-down"></i></h3>
+
+
+
+                <div class="collapsible-content" style="display: none;">
+
+
+
+                    <div class="info-panel" style="text-align: justify; font-size: 1.15rem; line-height: 1.7;">
+
+
+
+                        <p>Plataforma WEBGIS desenvolvido pelo Grupo de Pesquisa das Universidades e Institutos:</p>
+
+
+
+                        <div style="display: flex; flex-direction: column; gap: 15px; justify-content: center; margin-top: 15px;">
+
+
+
+                            <div style="display: flex; gap: 20px; justify-content: center;">
+
+
+
+                                <img src="data/logos/ufba.png" alt="UFBA" style="max-height: 80px; width: auto;">
+
+
+
+                                <img src="data/logos/ufrb.jpg" alt="UFRB" style="max-height: 80px; width: auto;">
+
+
+
+                                <img src="data/logos/uefs.jpg" alt="UEFS" style="max-height: 80px; width: auto;">
+
+
+
+                            </div>
+
+
+
+                            <div style="display: flex; gap: 20px; justify-content: center;">
+
+
+
+                                <img src="data/logos/uesc.jpeg" alt="UESC" style="max-height: 80px; width: auto;">
+
+
+
+                                <img src="data/logos/uneb.png" alt="UNEB" style="max-height: 80px; width: auto;">
+
+
+
+                                <img src="data/logos/catu.png" alt="CATU" style="max-height: 80px; width: auto;">
+
+
+
+                            </div>
+
+
+
+                        </div>
+
+
+
+                        <p style="margin-top: 15px; text-align: center;">Projeto FAPESB - 131/2023</p>
+
+
+
+                        <div style="display: flex; justify-content: center; margin-top: 10px;">
+
+
+
+                            <img src="data/logos/fapesb.png" alt="FAPESB" style="max-height: 80px; width: auto;">
+
+
+
+                        </div>
+
+
+
+                        <p style="margin-top: 15px; text-align: center; font-weight: bold;">VALORES DE REFERÊNCIA PARA METAIS NOS SOLOS DO CENTRO-LESTE DA BAHIA</p>
+
+
+
+                        <div style="display: flex; justify-content: center; margin-top: 10px;">
+
+
+
+                            <img src="data/logos/vrq.png" alt="VRQ" style="max-height: 100px; width: auto;">
+
+
+
+                        </div>
+
+
+
+                        <div style="margin-top: 15px; font-size: 12px; color: #333; text-align: center;">
+
+                            <strong style="display: block; margin-bottom: 5px; color: #203a43;">Representantes da Instituições Parceiras</strong>
+
+                            <div style="line-height: 1.4;">
+
+                                <div>Gisele Mara Hadlich - UFBA</div>
+
+                                <div>Thomas Vincent Gloaguen - UFRB</div>
+
+                                <div>Oldair Del'Arco Vinhas Costa - UFRB</div>
+
+                                <div>Taise Bomfim de Jesus - UEFS</div>
+
+                                <div>Arlicélio de Queiroz Paiva - UESC</div>
+
+                                <div>José Augusto Monteiro de Castro Lima – IF-CATU</div>
+
+                            </div>
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+        </aside>
+
+
+
+
+
+
+
+        <!-- Main Map Container -->
+
+
+
+        <main class="map-container">
+
+
+
+            <div id="map"></div>
+
+
+
+            <img src="data/logos/vrq.png" alt="VRQ" style="position: absolute; top: 10px; right: 10px; max-height: 80px; width: auto; z-index: 1000;">
+
+
+
+        </main>
+
+
+
+    </div>
+
+
+
+
+
+
+
+    <!-- Leaflet JavaScript -->
+
+
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.1/dist/proj4.js"></script>
+
+
+
+    
+
+
+
+    <!-- JavaScript principal -->
+
+
+
+    <script src="script.js"></script>
+
+
+
+    <script>
+
+
+
+    // Script para painel recolhível
+
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+
+
+        // Controles expansíveis (mapas de fundo e pontos)
+
+
+
+        var collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+
+
+
+        collapsibleHeaders.forEach(function(header) {
+
+
+
+            var content = header.nextElementSibling;
+
+
+
+            var icon = header.querySelector('.fa-chevron-down');
+
+
+
+            
+
+
+
+            header.addEventListener('click', function() {
+
+
+
+                console.log('Clicou no cabeçalho:', header.textContent);
+
+
+
+                if (content.style.display === 'none' || content.style.display === '') {
+
+
+
+                    content.style.display = 'flex';
+
+
+
+                    icon.classList.remove('fa-chevron-down');
+
+
+
+                    icon.classList.add('fa-chevron-up');
+
+
+
+                } else {
+
+
+
+                    content.style.display = 'none';
+
+
+
+                    icon.classList.remove('fa-chevron-up');
+
+
+
+                    icon.classList.add('fa-chevron-down');
+
+
+
+                }
+
+
+
+            });
+
+
+
+        });
+
+
+
+
+
+
+
+        // Barra unificada de scroll e redimensionamento
+
+
+
+        const sidebar = document.querySelector('.sidebar');
+
+
+
+        const container = document.querySelector('.container');
+
+
+
+        let isResizing = false;
+
+
+
+        // Criar barra unificada
+
+
+
+        const scrollResizeBar = document.createElement('div');
+
+
+
+        scrollResizeBar.className = 'sidebar-scroll-resize';
+
+
+
+        
+
+
+
+        sidebar.appendChild(scrollResizeBar);
+
+
+
+        // Redimensionamento horizontal
+
+
+
+        scrollResizeBar.addEventListener('mousedown', function(e) {
+
+
+
+            isResizing = true;
+
+
+
+            document.body.style.cursor = 'ew-resize';
+
+
+
+            document.body.style.userSelect = 'none';
+
+
+
+            e.preventDefault();
+
+
+
+        });
+
+
+
+
+
+
+
+        document.addEventListener('mousemove', function(e) {
+
+
+
+            // Redimensionamento horizontal
+
+
+
+            if (isResizing) {
+
+
+
+                const newWidth = e.clientX;
+
+
+
+                const minWidth = 250;
+
+
+
+                const maxWidth = 600;
+
+
+
+                
+
+
+
+                if (newWidth >= minWidth && newWidth <= maxWidth) {
+
+
+
+                    container.style.gridTemplateColumns = newWidth + 'px 1fr';
+
+
+
+                }
+
+
+
+            }
+
+
+
+        });
+
+
+
+
+
+
+
+        document.addEventListener('mouseup', function() {
+
+
+
+            if (isResizing) {
+
+
+
+                isResizing = false;
+
+
+
+                document.body.style.cursor = '';
+
+
+
+                document.body.style.userSelect = '';
+
+
+
+                
+
+
+
+                // Invalidar tamanho do mapa após redimensionamento
+
+
+
+                if (typeof map !== 'undefined' && map) {
+
+
+
+                    setTimeout(() => map.invalidateSize(), 100);
+
+
+
+                }
+
+
+
+            }
+
+
+
+        });
+
+    });
+
+
+
+    </script>
+
+
+
+    <style>
+
+
+
+    #splash-overlay {
+
+
+
+        position: fixed;
+
+
+
+        top: 0; left: 0; right: 0; bottom: 0;
+
+
+
+        background: rgba(30,30,30,0.85);
+
+
+
+        z-index: 99999;
+
+
+
+        display: flex;
+
+
+
+        flex-direction: column;
+
+
+
+        align-items: center;
+
+
+
+        justify-content: center;
+
+
+
+        transition: opacity 0.5s;
+
+
+
+    }
+
+
+
+    .splash-spinner {
+
+
+
+        width: 64px;
+
+
+
+        height: 64px;
+
+
+
+        border: 8px solid #f3f3f3;
+
+
+
+        border-top: 8px solid #667eea;
+
+
+
+        border-radius: 50%;
+
+
+
+        animation: splash-spin 1s linear infinite;
+
+
+
+    }
+
+
+
+    .splash-title-vrqs {
+
+
+
+        color: #fff;
+
+
+
+        font-size: 4rem;
+
+
+
+        font-weight: bold;
+
+
+
+        margin-top: 24px;
+
+
+
+        text-align: center;
+
+
+
+        letter-spacing: 1px;
+
+
+
+    }
+
+
+
+    .splash-title-centro {
+
+
+
+        color: #fff;
+
+
+
+        font-size: 2.7rem;
+
+
+
+        font-weight: bold;
+
+
+
+        margin-top: 4px;
+
+
+
+        text-align: center;
+
+
+
+        letter-spacing: 1px;
+
+
+
+    }
+
+
+
+    @keyframes splash-spin {
+
+
+
+        0% { transform: rotate(0deg); }
+
+
+
+        100% { transform: rotate(360deg); }
+
+
+
+    }
+
+
+
+    .header {
+
+
+
+        display: flex;
+
+
+
+        align-items: center;
+
+
+
+        justify-content: center;
+
+
+
+        position: relative;
+
+
+
+    }
+
+
+
+    .header-title {
+
+
+
+        flex: 1;
+
+
+
+        text-align: center;
+
+
+
+        font-size: 1.5rem;
+
+
+
+        font-weight: 600;
+
+
+
+        display: flex;
+
+
+
+        align-items: center;
+
+
+
+        justify-content: center;
+
+
+
+        gap: 10px;
+
+
+
+    }
+
+
+
+    .header-controls {
+
+
+
+        position: absolute;
+
+
+
+        right: 20px;
+
+
+
+        top: 50%;
+
+
+
+        transform: translateY(-50%);
+
+
+
+        display: flex;
+
+
+
+        gap: 10px;
+
+
+
+    }
+
+
+
+    .splash-logo-ufba {
+
+
+
+        display: block;
+
+
+
+        margin: 24px auto 0 auto;
+
+
+
+        max-width: 120px;
+
+
+
+        width: 100%;
+
+
+
+        height: auto;
+
+
+
+    }
+
+
+
+    </style>
+
+
+
+    <script>
+
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+
+
+        setTimeout(function() {
+
+
+
+            var splash = document.getElementById('splash-overlay');
+
+
+
+            if (splash) {
+
+
+
+                splash.style.opacity = 0;
+
+
+
+                setTimeout(function() { splash.style.display = 'none'; }, 500);
+
+
+
+            }
+
+
+
+        }, 3000);
+
+
+
+    });
+
+
+
+    </script>
+
+
+
+    <script>
+
+
+
+    fetch('https://www.ufba.br/sites/portal.ufba.br/files/ufba_brasao_vertical_cor_rgb.png')
+
+
+
+      .then(res => res.arrayBuffer())
+
+
+
+      .then(buffer => {
+
+
+
+        const layer = L.leafletGeotiff(buffer, {
+
+
+
+          band: 0,
+
+
+
+          displayMin: 0,
+
+
+
+          displayMax: 3000,
+
+
+
+          colorScale: chroma.scale('terrain').domain([0, 3000])
+
+
+
+        });
+
+
+
+        layer.addTo(map);
+
+
+
+      });
+
+
+
+    </script>
+
+
+
+    <script>
+
+
+
+    fetch('data/srtm.tif')
+
+
+
+      .then(res => res.arrayBuffer())
+
+
+
+      .then(buffer => {
+
+
+
+        const srtmLayer = L.leafletGeotiff(buffer, {
+
+
+
+          band: 0,
+
+
+
+          displayMin: 0,
+
+
+
+          displayMax: 3000,
+
+
+
+          colorScale: chroma.scale('terrain').domain([0, 3000])
+
+
+
+        });
+
+
+
+        srtmLayer.addTo(map);
+
+
+
+      });
+
+
+
+    </script>
+
+
+
+    <script src="https://unpkg.com/geotiff/dist/geotiff.browser.min.js"></script>
+
+
+
+    <script src="https://unpkg.com/leaflet-geotiff/dist/leaflet-geotiff.min.js"></script>
+
+
+
+    <script src="https://unpkg.com/leaflet-geotiff/dist/leaflet-geotiff.palette.min.js"></script>
+
+
+
+    <script src="https://unpkg.com/chroma-js@2.1.0/chroma.min.js"></script>
+
+
+
+</body>
+
+
+
+</html> 
