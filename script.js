@@ -222,7 +222,7 @@ const basemaps = {
 
 
 
-        url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
 
 
 
@@ -230,7 +230,7 @@ const basemaps = {
 
 
 
-        attribution: '© CartoDB, © OpenStreetMap contributors',
+        attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
 
 
 
@@ -318,7 +318,7 @@ const basemaps = {
 
 
 
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
 
 
 
@@ -326,7 +326,7 @@ const basemaps = {
 
 
 
-        attribution: '© CartoDB, © OpenStreetMap contributors',
+        attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
 
 
 
