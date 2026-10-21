@@ -326,7 +326,7 @@ const basemaps = {
 
 
 
-        attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
+        attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), TomTom',
 
 
 
@@ -14727,6 +14727,150 @@ function loadSolos() {
 
 
                 sidebar.appendChild(section);
+                const relatoriosSection = document.createElement('div');
+                relatoriosSection.className = 'sidebar-section collapsible';
+                const relatoriosFiles = [
+                    'TCL01.png', 'TCL02.png', 'TCL03.png', 'TCL04.png',
+                    'TCL05.png', 'TCL06.png', 'TCL07.png', 'TCL08.png',
+                    'TCL09.png', 'TCL10.png', 'TCL11.png', 'TCL12.png',
+                    'TCL13.png', 'TCL14.png', 'TCL15.png', 'TCL16.png',
+                    'TCL17.png', 'TCL18.png', 'TCL19.png', 'TCL20.png',
+                    'TCL21.png', 'TCL22.png', 'TCL23.png', 'TCL24.png',
+                    'TCL25.png', 'TCL26.png', 'TCL27.png', 'TCL28.png',
+                    'TCL29.png', 'TCL30.png', 'TCL32.png', 'TCL33.png',
+                    'TCL34.png', 'TCL35.png', 'TCL54.png', 'TCL57.png',
+                    'TCL58.png', 'TCL61.png', 'TCL62.png', 'TCL63.png',
+                    'TCL64.png', 'TCL65.png', 'TCL66.png', 'TCL67.png',
+                    'TCL68.png'
+                ];
+                const relatoriosItemsHtml = relatoriosFiles
+                    .map(file => {
+                        const label = file.replace(/\.png$/i, '');
+                        return `\n                                <li class="relatorios-item" data-src="data/Pastas/${file}" tabindex="0">\n                                    <span>${label}</span>\n                                </li>`;
+                    })
+                    .join('');
+                relatoriosSection.innerHTML = `
+                    <h4 class="collapsible-header" style="font-size: 1rem; margin: 0; padding: 5px 0 5px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
+                        <i class="fas fa-file-image"></i>
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Relatórios</span>
+                    </h4>
+                    <div class="collapsible-content" id="relatorios-content" style="display: none; position: relative; flex-direction: column; gap: 8px; margin-left: 10px;">
+                        <p style="margin: 0; font-size: 0.95rem; color: #333;">Documentos disponíveis:</p>
+                        <ul class="relatorios-list">${relatoriosItemsHtml}
+                            </ul>
+                        <div class="relatorios-modal" id="relatorios-modal" style="display: none;">
+                            <div class="relatorios-modal-overlay" id="relatorios-modal-overlay"></div>
+                            <div class="relatorios-modal-content">
+                                <button class="relatorios-modal-close" id="relatorios-modal-close"><i class="fas fa-times"></i></button>
+                                <img src="" alt="Relatório" id="relatorios-modal-img" />
+                                <div class="relatorios-modal-caption" id="relatorios-modal-caption"></div>
+                                <div class="relatorios-modal-actions">
+                                    <a id="relatorios-modal-download" class="relatorios-download-btn" href="#" target="_blank" download>Download</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                section.insertAdjacentElement('afterend', relatoriosSection);
+                relatoriosSection.querySelector('.collapsible-header').addEventListener('click', function() {
+                    const content = relatoriosSection.querySelector('.collapsible-content');
+                    const icon = relatoriosSection.querySelector('.fa-chevron-down, .fa-chevron-up');
+                    if (content.style.display === 'none' || content.style.display === '') {
+                        content.style.display = 'flex';
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    } else {
+                        content.style.display = 'none';
+                        icon.classList.remove('fa-chevron-up');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                });
+                const relatoriosItems = relatoriosSection.querySelectorAll('.relatorios-item');
+                let previewFlyout = null;
+                let previewImg = null;
+                let previewLabel = null;
+                const mapContainer = document.getElementById('map');
+                if (mapContainer) {
+                    previewFlyout = document.createElement('div');
+                    previewFlyout.id = 'relatorios-preview-flyout';
+                    previewFlyout.className = 'relatorios-preview-flyout';
+                    previewFlyout.style.display = 'none';
+                    previewFlyout.style.position = 'absolute';
+                    previewFlyout.style.top = '50%';
+                    previewFlyout.style.left = '50%';
+                    previewFlyout.style.transform = 'translate(-50%, -50%)';
+                    previewFlyout.style.width = '220px';
+                    previewFlyout.style.padding = '10px';
+                    previewFlyout.style.borderRadius = '14px';
+                    previewFlyout.style.background = '#ffffff';
+                    previewFlyout.style.boxShadow = '0 18px 45px rgba(15, 23, 42, 0.18)';
+                    previewFlyout.style.zIndex = '1500';
+                    previewFlyout.style.pointerEvents = 'none';
+                    previewFlyout.innerHTML = '<img src="" alt="Pré-visualização" id="relatorios-preview-img" class="relatorios-preview-img" /><div class="relatorios-preview-label" id="relatorios-preview-label"></div>';
+                    mapContainer.appendChild(previewFlyout);
+                    previewImg = previewFlyout.querySelector('#relatorios-preview-img');
+                    previewLabel = previewFlyout.querySelector('#relatorios-preview-label');
+                }
+                const modal = relatoriosSection.querySelector('#relatorios-modal');
+                const modalOverlay = relatoriosSection.querySelector('#relatorios-modal-overlay');
+                const modalClose = relatoriosSection.querySelector('#relatorios-modal-close');
+                const modalImg = relatoriosSection.querySelector('#relatorios-modal-img');
+                const modalCaption = relatoriosSection.querySelector('#relatorios-modal-caption');
+                const modalDownload = relatoriosSection.querySelector('#relatorios-modal-download');
+                const openModal = function(src, label) {
+                    modalImg.src = src;
+                    modalImg.alt = 'Relatório ' + label;
+                    modalCaption.textContent = label;
+                    modalDownload.href = src;
+                    modalDownload.download = label;
+                    modal.style.display = 'flex';
+                };
+                const closeModal = function() {
+                    modal.style.display = 'none';
+                    modalImg.src = '';
+                    modalCaption.textContent = '';
+                    modalDownload.href = '#';
+                };
+                const showPreview = function(src, label) {
+                    if (!previewFlyout) return;
+                    previewImg.src = src;
+                    previewImg.alt = 'Pré-visualização de ' + label;
+                    previewLabel.textContent = label;
+                    previewFlyout.style.display = 'block';
+                };
+                const hidePreview = function() {
+                    if (!previewFlyout) return;
+                    previewFlyout.style.display = 'none';
+                };
+                relatoriosItems.forEach(function(item) {
+                    const src = item.getAttribute('data-src');
+                    const label = item.querySelector('span').textContent;
+                    item.addEventListener('mouseenter', function() {
+                        showPreview(src, label);
+                    });
+                    item.addEventListener('focus', function() {
+                        showPreview(src, label);
+                    });
+                    item.addEventListener('mouseleave', hidePreview);
+                    item.addEventListener('blur', hidePreview);
+                    item.addEventListener('click', function() {
+                        openModal(src, label);
+                    });
+                    item.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openModal(src, label);
+                        }
+                    });
+                });
+                modalOverlay.addEventListener('click', closeModal);
+                modalClose.addEventListener('click', closeModal);
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && modal.style.display === 'flex') {
+                        closeModal();
+                    }
+                });
 
 
 
