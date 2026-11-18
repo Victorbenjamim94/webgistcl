@@ -622,6 +622,27 @@ body {
     overflow-x: hidden;
 }
 
+.perfil-modal-list {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.perfil-modal-list .relatorios-item {
+    width: 100%;
+}
+
+.perfil-modal-list .relatorios-item span {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.perfil-modal-note {
+    margin: 0;
+    color: #fff;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
 .relatorios-item {
     display: flex;
     align-items: center;
@@ -708,6 +729,8 @@ body {
     position: relative;
     z-index: 1;
     width: min(94vw, 760px);
+    min-width: min(320px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
     max-height: 90vh;
     padding: 16px;
     border-radius: 16px;
@@ -717,6 +740,55 @@ body {
     flex-direction: column;
     gap: 14px;
     overflow: hidden;
+}
+
+.perfil-modal-side-handle {
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+    width: 14px;
+    height: 72px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    background: #4f46e5;
+    box-shadow: 0 1px 5px rgba(15, 23, 42, 0.35);
+    cursor: ew-resize;
+    touch-action: none;
+    transform: translateY(-50%);
+}
+
+.perfil-modal-side-left {
+    left: 0;
+}
+
+.perfil-modal-side-right {
+    right: 0;
+}
+
+.relatorios-modal-content.is-resizing,
+.relatorios-modal-content.is-resizing * {
+    cursor: ew-resize;
+    user-select: none;
+}
+
+.perfil-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 34px;
+    padding-right: 42px;
+    cursor: grab;
+    touch-action: none;
+}
+
+.perfil-modal-header.is-dragging {
+    cursor: grabbing;
+}
+
+.perfil-modal-header .relatorios-modal-caption {
+    flex: 1;
+    text-align: left;
 }
 
 .relatorios-modal-actions {
@@ -745,8 +817,8 @@ body {
 
 .relatorios-modal-close {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 16px;
+    right: 16px;
     width: 34px;
     height: 34px;
     border: none;
@@ -769,6 +841,71 @@ body {
     border-radius: 12px;
     object-fit: contain;
     background: #f5f7fb;
+}
+
+.perfil-modal-zoom-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-right: 36px;
+}
+
+.perfil-modal-zoom-controls button {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #111827;
+    cursor: pointer;
+}
+
+.perfil-modal-zoom-controls button:hover {
+    background: #eef2ff;
+    border-color: #667eea;
+}
+
+#perfil-zoom-level {
+    min-width: 48px;
+    color: #111827;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.perfil-modal-image-viewport {
+    width: 100%;
+    max-height: 65vh;
+    overflow: auto;
+    border-radius: 12px;
+    background: #f5f7fb;
+}
+
+.perfil-modal-image-viewport img {
+    display: block;
+    width: 100%;
+    max-width: none;
+    max-height: 65vh;
+    margin: 0 auto;
+    object-fit: contain;
+    background: #f5f7fb;
+}
+
+.perfil-modal-image-viewport.is-zoomed img {
+    max-height: none;
+    margin: 0;
+}
+
+.perfil-modal-image-viewport.is-zoomed,
+.perfil-modal-image-viewport.is-zoomed img {
+    cursor: grab;
+    user-select: none;
+}
+
+.perfil-modal-image-viewport.is-dragging,
+.perfil-modal-image-viewport.is-dragging img {
+    cursor: grabbing;
 }
 
 .relatorios-modal-caption {

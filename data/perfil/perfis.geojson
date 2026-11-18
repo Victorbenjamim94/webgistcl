@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "perfis",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{"type":"Feature","properties":{"OBJECTID":1,"Perfil":"P-11","X":433194.0,"Y":8651013.0},"geometry":{"type":"Point","coordinates":[-39.614143166999952,-12.202187735999928]}},
+{"type":"Feature","properties":{"OBJECTID":2,"Perfil":"P-12","X":506118.0,"Y":8639332.0},"geometry":{"type":"Point","coordinates":[-38.943734120999977,-12.308500179999953]}},
+{"type":"Feature","properties":{"OBJECTID":3,"Perfil":"P-13","X":506438.0,"Y":8639962.0},"geometry":{"type":"Point","coordinates":[-38.940792428999941,-12.302802352999947]}},
+{"type":"Feature","properties":{"OBJECTID":4,"Perfil":"P-14","X":475478.0,"Y":8655164.0},"geometry":{"type":"Point","coordinates":[-39.225401374999933,-12.165241590999926]}},
+{"type":"Feature","properties":{"OBJECTID":5,"Perfil":"P-15","X":521911.0,"Y":8626778.0},"geometry":{"type":"Point","coordinates":[-38.798402837999959,-12.421958664999977]}},
+{"type":"Feature","properties":{"OBJECTID":6,"Perfil":"P-16","X":530131.0,"Y":8613095.0},"geometry":{"type":"Point","coordinates":[-38.722641650999947,-12.545626703999972]}}
+]
+}

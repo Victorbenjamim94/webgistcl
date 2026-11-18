@@ -22,7 +22,11 @@ let currentBasemap = 'osm';
 
 
 
-let layers = { soloClasses: {}, geomorf: {}, geologia: {}, xrf: {} };
+let layers = { soloClasses: {}, geomorf: {}, geologia: {}, xrf: {}, perfis: null };
+
+let perfilP11Coordinates = null;
+let openPerfilP11Modal = null;
+let pontosLoadPromise = null;
 
 
 
@@ -488,13 +492,11 @@ function initMap() {
 
     map.createPane('panePontos');
 
-
-
-
-
-
-
     map.getPane('panePontos').style.zIndex = 650;
+
+    map.createPane('panePerfis');
+
+    map.getPane('panePerfis').style.zIndex = 660;
 
 
 
@@ -836,23 +838,22 @@ function addBasemap(basemapKey) {
 
 
 
-
-
     const basemap = basemaps[basemapKey];
 
 
 
 
 
-
-
     if (basemap) {
+        document.querySelectorAll('.basemap-checkbox').forEach(function(checkbox) {
+            const otherBasemapKey = checkbox.dataset.basemap;
+            if (otherBasemapKey === basemapKey) return;
 
-
-
-
-
-
+            checkbox.checked = false;
+            if (layers[otherBasemapKey] && map.hasLayer(layers[otherBasemapKey])) {
+                map.removeLayer(layers[otherBasemapKey]);
+            }
+        });
 
         if (!layers[basemapKey]) {
 
@@ -1852,13 +1853,12 @@ function setupEventListeners() {
 
         xrfEl.addEventListener('change', function() {
 
-
-
-
-
-
-
             if (this.checked) {
+                const pontosCheckbox = document.getElementById('layer-pontos');
+                if (pontosCheckbox && pontosCheckbox.checked) {
+                    pontosCheckbox.checked = false;
+                    syncPontosLayerWithCheckbox();
+                }
 
 
 
@@ -2431,7 +2431,7 @@ function setupEventListeners() {
 
 
 // Função global de pesquisa de pontos
-function performSearch() {
+async function performSearch() {
     const searchInput = document.getElementById('search-input');
     const searchResults = document.getElementById('search-results');
     if (!searchInput || !searchResults) {
@@ -2442,17 +2442,18 @@ function performSearch() {
     const searchTerm = searchInput.value.trim().toLowerCase();
     const pontosCheckbox = document.getElementById('layer-pontos');
 
-    if (!pontosCheckbox || !pontosCheckbox.checked) {
-        searchResults.innerHTML = '<p style="color: #666; font-size: 11px;">Ative a camada "Pontos" para buscar.</p>';
-        return;
-    }
-
     if (!searchTerm) {
         searchResults.innerHTML = '<p style="color: #666; font-size: 11px;">Digite um termo para buscar.</p>';
         return;
     }
 
     searchResults.innerHTML = '<p style="color: #666; font-size: 11px;">Buscando...</p>';
+    if (!pontosLoadPromise && !layers.pontos) {
+        loadPontos();
+    }
+    if (pontosLoadPromise) {
+        await pontosLoadPromise;
+    }
 
     const results = [];
     if (layers.pontos && layers.pontos.getLayers) {
@@ -2481,29 +2482,42 @@ function performSearch() {
         });
     }
 
-    if (results.length === 0) {
+    const exactResults = results.filter(function(result) {
+        return result.name.toLowerCase() === searchTerm;
+    });
+    const matchedResults = exactResults.length > 0 ? exactResults : results;
+
+    if (matchedResults.length === 0) {
         searchResults.innerHTML = '<p style="color: #666; font-size: 11px;">Nenhum resultado encontrado.</p>';
     } else {
+        const goToResult = function(result) {
+            if (!map || !result || !result.latlng) return;
+            if (pontosCheckbox && !pontosCheckbox.checked) {
+                pontosCheckbox.checked = true;
+                syncPontosLayerWithCheckbox();
+            }
+            map.setView(result.latlng, 16);
+            result.layer.openPopup();
+        };
         let html = '<div style="display: flex; flex-direction: column; gap: 4px;">';
-        results.forEach(function(result, index) {
+        matchedResults.forEach(function(result, index) {
             html += '<button class="search-result-btn" data-index="' + index + '" style="padding: 6px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; text-align: left; font-size: 11px; transition: background 0.2s;">' +
                 '<i class="fas fa-map-marker-alt" style="color: #667eea;"></i> <strong>' + result.name + '</strong>' +
                 '</button>';
         });
         html += '</div>';
         searchResults.innerHTML = html;
-        document.querySelectorAll('.search-result-btn').forEach(function(btn) {
+        searchResults.querySelectorAll('.search-result-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 const index = parseInt(this.dataset.index);
-                const result = results[index];
-                if (result && result.latlng) {
-                    map.setView(result.latlng, 16);
-                    result.layer.openPopup();
-                }
+                goToResult(matchedResults[index]);
             });
             btn.addEventListener('mouseenter', function() { this.style.background = '#e0e7ff'; });
             btn.addEventListener('mouseleave', function() { this.style.background = '#f0f0f0'; });
         });
+        if (exactResults.length === 1) {
+            goToResult(exactResults[0]);
+        }
     }
 }
 
@@ -6131,34 +6145,43 @@ function syncPontosLayerWithCheckbox() {
 
 
 
-
-
-
-
     const el = document.getElementById('layer-pontos');
 
 
 
 
 
-
-
-    if (!map || !el || !layers.pontos) return;
-
-
+    if (!el) return;
 
 
 
 
 
     if (el.checked) {
+        const xrfCheckbox = document.getElementById('layer-xrf');
+        if (xrfCheckbox && xrfCheckbox.checked) {
+            xrfCheckbox.checked = false;
+            if (map && layers.xrf && map.hasLayer(layers.xrf)) {
+                map.removeLayer(layers.xrf);
+            }
+        }
+
+        const perfisCheckbox = document.getElementById('layer-perfis');
+        if (perfisCheckbox && perfisCheckbox.checked) {
+            perfisCheckbox.checked = false;
+            if (map && layers.perfis && map.hasLayer(layers.perfis)) {
+                map.removeLayer(layers.perfis);
+            }
+        }
+    }
+
+    if (!map || !layers.pontos) return;
 
 
 
 
 
-
-
+    if (el.checked) {
         if (!map.hasLayer(layers.pontos)) {
 
 
@@ -6323,11 +6346,7 @@ function loadPontos() {
 
 
 
-
-
-
-
-    fetch('data/point_a.geojson')
+    pontosLoadPromise = fetch('data/point_a.geojson')
 
 
 
@@ -6636,7 +6655,15 @@ function loadPontos() {
 
 
 
-
+                cm.on('click', function() {
+                    if (!perfilP11Coordinates || !openPerfilP11Modal) return;
+                    if (
+                        Number(props.LONGITUDE) === perfilP11Coordinates.x &&
+                        Number(props.LATITUDE) === perfilP11Coordinates.y
+                    ) {
+                        openPerfilP11Modal();
+                    }
+                });
 
 
 
@@ -6944,15 +6971,15 @@ function loadPontos() {
 
 
 
-            // Adicionar pontos por padrão e marcar checkbox
-
-
-
-
-
-
-
-            if (layers.pontos && layers.pontos.getLayers().length > 0) {
+            // Adicionar pontos por padrão, exceto quando a camada de perfis estiver ativa.
+            const perfisCheckboxEl = document.getElementById('layer-perfis');
+            const xrfCheckboxEl = document.getElementById('layer-xrf');
+            if (
+                layers.pontos &&
+                layers.pontos.getLayers().length > 0 &&
+                !(perfisCheckboxEl && perfisCheckboxEl.checked) &&
+                !(xrfCheckboxEl && xrfCheckboxEl.checked)
+            ) {
 
 
 
@@ -7814,9 +7841,13 @@ function loadXRF() {
 
 
 
-
-
             });
+
+            const xrfCheckbox = document.getElementById('layer-xrf');
+            if (xrfCheckbox && xrfCheckbox.checked && map) {
+                layers.xrf.addTo(map);
+                bringDataLayersToFront();
+            }
 
 
 
@@ -14773,6 +14804,336 @@ function loadSolos() {
                     </div>
                 `;
                 section.insertAdjacentElement('afterend', relatoriosSection);
+                const perfisModaisSection = document.createElement('div');
+                perfisModaisSection.className = 'sidebar-section collapsible';
+                perfisModaisSection.innerHTML = `
+                    <h4 class="collapsible-header" style="font-size: 1rem; margin: 0; padding: 5px 0; cursor: pointer; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
+                        <i class="fas fa-chart-area"></i>
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Perfis Modais</span>
+                    </h4>
+                    <div class="collapsible-content" style="display: none; flex-direction: column; gap: 8px; margin-left: 10px;">
+                        <label class="layer-checkbox">
+                            <input type="checkbox" id="layer-perfis">
+                            <span class="checkmark"></span>
+                            Perfis
+                        </label>
+                        <p class="perfil-modal-note">
+                            <strong>Nota:</strong> Apresentadas as descrições gerais e morfológicas, bem como os resultados analíticos dos perfis selecionados, descritos, amostrados e classificados conforme Santos et al. (2025). Desse total, sete perfis foram cedidos pela equipe da XVI Reunião Brasileira de Classificação e Correlação de Solos.
+                        </p>
+                    </div>
+                    <div class="relatorios-modal" id="perfil-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="perfil-modal-caption">
+                        <div class="relatorios-modal-overlay" id="perfil-modal-overlay"></div>
+                        <div class="relatorios-modal-content">
+                            <button type="button" class="perfil-modal-side-handle perfil-modal-side-left" aria-label="Redimensionar pela lateral esquerda"></button>
+                            <button type="button" class="perfil-modal-side-handle perfil-modal-side-right" aria-label="Redimensionar pela lateral direita"></button>
+                            <div class="perfil-modal-header" id="perfil-modal-header">
+                                <div class="relatorios-modal-caption" id="perfil-modal-caption">Perfil P-11</div>
+                                <button class="relatorios-modal-close" id="perfil-modal-close" type="button" aria-label="Fechar"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="perfil-modal-zoom-controls" aria-label="Controles de zoom da imagem">
+                                <button type="button" id="perfil-zoom-out" aria-label="Diminuir zoom"><i class="fas fa-minus"></i></button>
+                                <span id="perfil-zoom-level" aria-live="polite">100%</span>
+                                <button type="button" id="perfil-zoom-in" aria-label="Aumentar zoom"><i class="fas fa-plus"></i></button>
+                                <button type="button" id="perfil-zoom-reset">Ajustar</button>
+                            </div>
+                            <div class="perfil-modal-image-viewport" id="perfil-modal-image-viewport">
+                                <img src="" alt="Perfil P-11" id="perfil-modal-img">
+                            </div>
+                            <div class="relatorios-modal-actions">
+                                <a id="perfil-modal-download" class="relatorios-download-btn" href="#" target="_blank" rel="noopener" download>Download</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                relatoriosSection.insertAdjacentElement('afterend', perfisModaisSection);
+                const perfisCheckbox = perfisModaisSection.querySelector('#layer-perfis');
+                layers.perfis = L.geoJSON(null, {
+                    pointToLayer: function(feature, latlng) {
+                        return L.circleMarker(latlng, {
+                            pane: 'panePerfis',
+                            radius: 4,
+                            color: '#ffffff',
+                            weight: 2,
+                            fillColor: '#e67e22',
+                            fillOpacity: 0.95
+                        });
+                    },
+                    onEachFeature: function(feature, layer) {
+                        const properties = feature.properties || {};
+                        const name = escapeHtmlPontos(properties.Perfil || 'Perfil sem identificação');
+                        const coordinateX = Number(properties.X);
+                        const coordinateY = Number(properties.Y);
+                        const formattedX = Number.isFinite(coordinateX)
+                            ? new Intl.NumberFormat('pt-BR').format(coordinateX)
+                            : 'Indisponível';
+                        const formattedY = Number.isFinite(coordinateY)
+                            ? new Intl.NumberFormat('pt-BR').format(coordinateY)
+                            : 'Indisponível';
+
+                        layer.bindTooltip(name);
+                        if (properties.Perfil === 'P-11') {
+                            layer.on('click', function() {
+                                openPerfilModal(
+                                    'data/perfil/p11.png',
+                                    'Perfil P-11',
+                                    'p11.png',
+                                    'Perfil P-11'
+                                );
+                            });
+                        } else {
+                            layer.bindPopup(
+                                '<strong>Perfil: ' + name + '</strong>' +
+                                '<br>X: ' + formattedX + ' m' +
+                                '<br>Y: ' + formattedY + ' m'
+                            );
+                        }
+                    }
+                });
+                perfisCheckbox.addEventListener('change', function() {
+                    if (perfisCheckbox.checked) {
+                        const pontosCheckbox = document.getElementById('layer-pontos');
+                        if (pontosCheckbox && pontosCheckbox.checked) {
+                            pontosCheckbox.checked = false;
+                            syncPontosLayerWithCheckbox();
+                        }
+                    }
+                    if (!map || !layers.perfis) return;
+                    if (perfisCheckbox.checked) {
+                        layers.perfis.addTo(map);
+                    } else if (map.hasLayer(layers.perfis)) {
+                        map.removeLayer(layers.perfis);
+                    }
+                });
+                fetch('data/perfil/perfis.geojson')
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error(response.status + ' ' + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(function(data) {
+                        const p11Feature = data.features.find(function(feature) {
+                            return feature.properties && feature.properties.Perfil === 'P-11';
+                        });
+                        if (p11Feature) {
+                            perfilP11Coordinates = {
+                                x: Number(p11Feature.properties.X),
+                                y: Number(p11Feature.properties.Y)
+                            };
+                        }
+                        layers.perfis.addData(data);
+                        if (perfisCheckbox.checked && map) {
+                            layers.perfis.addTo(map);
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Erro ao carregar os perfis modais:', error);
+                        alert('Erro ao carregar os perfis modais: ' + error.message);
+                        perfisCheckbox.disabled = true;
+                    });
+                perfisModaisSection.querySelector('.collapsible-header').addEventListener('click', function() {
+                    const content = perfisModaisSection.querySelector('.collapsible-content');
+                    const icon = perfisModaisSection.querySelector('.fa-chevron-down, .fa-chevron-up');
+                    if (content.style.display === 'none' || content.style.display === '') {
+                        content.style.display = 'flex';
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    } else {
+                        content.style.display = 'none';
+                        icon.classList.remove('fa-chevron-up');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                });
+                const perfilModal = perfisModaisSection.querySelector('#perfil-modal');
+                document.body.appendChild(perfilModal);
+                const perfilModalContent = perfilModal.querySelector('.relatorios-modal-content');
+                const perfilModalImg = perfilModal.querySelector('#perfil-modal-img');
+                const perfilModalCaption = perfilModal.querySelector('#perfil-modal-caption');
+                const perfilModalHeader = perfilModal.querySelector('#perfil-modal-header');
+                const perfilModalClose = perfilModal.querySelector('#perfil-modal-close');
+                const perfilModalOverlay = perfilModal.querySelector('#perfil-modal-overlay');
+                const perfilModalDownload = perfilModal.querySelector('#perfil-modal-download');
+                const perfilImageViewport = perfilModal.querySelector('#perfil-modal-image-viewport');
+                const perfilZoomLevel = perfilModal.querySelector('#perfil-zoom-level');
+                let perfilZoom = 1;
+                let perfilModalPosition = { x: 0, y: 0 };
+                let perfilModalDrag = null;
+                let perfilModalResize = null;
+                perfilModal.querySelectorAll('.perfil-modal-side-handle').forEach(function(handle) {
+                    handle.addEventListener('pointerdown', function(e) {
+                        if (e.button !== 0) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        perfilModalResize = {
+                            pointerX: e.clientX,
+                            width: perfilModalContent.getBoundingClientRect().width,
+                            positionX: perfilModalPosition.x,
+                            direction: handle.classList.contains('perfil-modal-side-right') ? 1 : -1
+                        };
+                        handle.setPointerCapture(e.pointerId);
+                        perfilModalContent.classList.add('is-resizing');
+                    });
+                    handle.addEventListener('pointermove', function(e) {
+                        if (!perfilModalResize) return;
+                        e.stopPropagation();
+                        const delta = (e.clientX - perfilModalResize.pointerX) * perfilModalResize.direction;
+                        const maxWidth = window.innerWidth - 32;
+                        const width = Math.min(maxWidth, Math.max(320, perfilModalResize.width + delta));
+                        const widthChange = width - perfilModalResize.width;
+                        perfilModalContent.style.width = width + 'px';
+                        perfilModalPosition.x = perfilModalResize.positionX +
+                            widthChange * perfilModalResize.direction / 2;
+                        perfilModalContent.style.transform =
+                            'translate(' + perfilModalPosition.x + 'px, ' + perfilModalPosition.y + 'px)';
+                    });
+                    const stopPerfilModalResize = function(e) {
+                        if (!perfilModalResize) return;
+                        e.stopPropagation();
+                        perfilModalResize = null;
+                        perfilModalContent.classList.remove('is-resizing');
+                        if (handle.hasPointerCapture(e.pointerId)) {
+                            handle.releasePointerCapture(e.pointerId);
+                        }
+                    };
+                    handle.addEventListener('pointerup', stopPerfilModalResize);
+                    handle.addEventListener('pointercancel', stopPerfilModalResize);
+                });
+                const stopPerfilModalDrag = function(e) {
+                    if (!perfilModalDrag) return;
+                    perfilModalDrag = null;
+                    perfilModalHeader.classList.remove('is-dragging');
+                    if (perfilModalHeader.hasPointerCapture(e.pointerId)) {
+                        perfilModalHeader.releasePointerCapture(e.pointerId);
+                    }
+                };
+                perfilModalHeader.addEventListener('pointerdown', function(e) {
+                    if (e.button !== 0 || e.target.closest('.relatorios-modal-close')) return;
+                    const rect = perfilModalContent.getBoundingClientRect();
+                    perfilModalDrag = {
+                        pointerX: e.clientX,
+                        pointerY: e.clientY,
+                        startX: perfilModalPosition.x,
+                        startY: perfilModalPosition.y,
+                        rect: rect
+                    };
+                    perfilModalHeader.setPointerCapture(e.pointerId);
+                    perfilModalHeader.classList.add('is-dragging');
+                    e.preventDefault();
+                });
+                perfilModalHeader.addEventListener('pointermove', function(e) {
+                    if (!perfilModalDrag) return;
+                    const deltaX = e.clientX - perfilModalDrag.pointerX;
+                    const deltaY = e.clientY - perfilModalDrag.pointerY;
+                    const baseLeft = perfilModalDrag.rect.left - perfilModalDrag.startX;
+                    const baseRight = perfilModalDrag.rect.right - perfilModalDrag.startX;
+                    const baseTop = perfilModalDrag.rect.top - perfilModalDrag.startY;
+                    const baseBottom = perfilModalDrag.rect.bottom - perfilModalDrag.startY;
+                    perfilModalPosition.x = Math.min(
+                        window.innerWidth - baseRight,
+                        Math.max(-baseLeft, perfilModalDrag.startX + deltaX)
+                    );
+                    perfilModalPosition.y = Math.min(
+                        window.innerHeight - baseBottom,
+                        Math.max(-baseTop, perfilModalDrag.startY + deltaY)
+                    );
+                    perfilModalContent.style.transform =
+                        'translate(' + perfilModalPosition.x + 'px, ' + perfilModalPosition.y + 'px)';
+                });
+                perfilModalHeader.addEventListener('pointerup', stopPerfilModalDrag);
+                perfilModalHeader.addEventListener('pointercancel', stopPerfilModalDrag);
+                perfilModalHeader.addEventListener('lostpointercapture', function() {
+                    perfilModalDrag = null;
+                    perfilModalHeader.classList.remove('is-dragging');
+                });
+                const setPerfilZoom = function(zoom) {
+                    perfilZoom = Math.min(4, Math.max(1, zoom));
+                    perfilModalImg.style.width = (perfilZoom * 100) + '%';
+                    perfilModalImg.style.maxHeight = perfilZoom === 1 ? '' : 'none';
+                    perfilZoomLevel.textContent = Math.round(perfilZoom * 100) + '%';
+                    perfilImageViewport.classList.toggle('is-zoomed', perfilZoom > 1);
+                    if (perfilZoom === 1) {
+                        perfilImageViewport.scrollTo({ top: 0, left: 0 });
+                    }
+                };
+                const openPerfilModal = function(src, label, downloadName, caption) {
+                    setPerfilZoom(1);
+                    perfilModalImg.src = src;
+                    perfilModalImg.alt = label;
+                    perfilModalCaption.textContent = caption || label;
+                    perfilModalDownload.href = src;
+                    perfilModalDownload.download = downloadName;
+                    perfilModalPosition = { x: 0, y: 0 };
+                    perfilModalContent.style.width = '';
+                    perfilModalContent.style.transform = 'translate(0, 0)';
+                    perfilModal.style.display = 'flex';
+                };
+                openPerfilP11Modal = function() {
+                    openPerfilModal(
+                        'data/perfil/p11.png',
+                        'Perfil P-11',
+                        'p11.png',
+                        'Perfil P-11'
+                    );
+                };
+                const closePerfilModal = function() {
+                    perfilModal.style.display = 'none';
+                    perfilModalImg.src = '';
+                    perfilModalCaption.textContent = '';
+                    perfilModalDownload.href = '#';
+                    perfilModalPosition = { x: 0, y: 0 };
+                    perfilModalContent.style.width = '';
+                    perfilModalContent.style.transform = 'translate(0, 0)';
+                    setPerfilZoom(1);
+                };
+                perfilModal.querySelector('#perfil-zoom-in').addEventListener('click', function() {
+                    setPerfilZoom(perfilZoom + 0.25);
+                });
+                perfilModal.querySelector('#perfil-zoom-out').addEventListener('click', function() {
+                    setPerfilZoom(perfilZoom - 0.25);
+                });
+                perfilModal.querySelector('#perfil-zoom-reset').addEventListener('click', function() {
+                    setPerfilZoom(1);
+                });
+                perfilImageViewport.addEventListener('wheel', function(e) {
+                    e.preventDefault();
+                    setPerfilZoom(perfilZoom + (e.deltaY < 0 ? 0.25 : -0.25));
+                }, { passive: false });
+                let perfilDragPosition = null;
+                perfilImageViewport.addEventListener('pointerdown', function(e) {
+                    if (perfilZoom <= 1 || e.button !== 0) return;
+                    perfilDragPosition = {
+                        x: e.clientX,
+                        y: e.clientY,
+                        scrollLeft: perfilImageViewport.scrollLeft,
+                        scrollTop: perfilImageViewport.scrollTop
+                    };
+                    perfilImageViewport.setPointerCapture(e.pointerId);
+                    perfilImageViewport.classList.add('is-dragging');
+                    e.preventDefault();
+                });
+                perfilImageViewport.addEventListener('pointermove', function(e) {
+                    if (!perfilDragPosition) return;
+                    perfilImageViewport.scrollLeft = perfilDragPosition.scrollLeft - (e.clientX - perfilDragPosition.x);
+                    perfilImageViewport.scrollTop = perfilDragPosition.scrollTop - (e.clientY - perfilDragPosition.y);
+                });
+                const stopPerfilImageDrag = function(e) {
+                    if (!perfilDragPosition) return;
+                    perfilDragPosition = null;
+                    perfilImageViewport.classList.remove('is-dragging');
+                    if (perfilImageViewport.hasPointerCapture(e.pointerId)) {
+                        perfilImageViewport.releasePointerCapture(e.pointerId);
+                    }
+                };
+                perfilImageViewport.addEventListener('pointerup', stopPerfilImageDrag);
+                perfilImageViewport.addEventListener('pointercancel', stopPerfilImageDrag);
+                perfilModalClose.addEventListener('click', closePerfilModal);
+                perfilModalOverlay.addEventListener('click', closePerfilModal);
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && perfilModal.style.display === 'flex') {
+                        closePerfilModal();
+                    }
+                });
                 relatoriosSection.querySelector('.collapsible-header').addEventListener('click', function() {
                     const content = relatoriosSection.querySelector('.collapsible-content');
                     const icon = relatoriosSection.querySelector('.fa-chevron-down, .fa-chevron-up');
