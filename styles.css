@@ -232,6 +232,49 @@ body {
     color: white;
 }
 
+.project-changelog {
+    background: #f5f7fb;
+    border-left: 4px solid #667eea;
+    color: #2d3748;
+}
+
+.project-changelog h3 {
+    color: #203a43;
+}
+
+.project-changelog h3 i {
+    color: #667eea;
+}
+
+.project-changelog-date {
+    margin: -4px 0 10px;
+    color: #52606d;
+    font-size: 0.8rem;
+}
+
+.project-changelog ul {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding-left: 18px;
+}
+
+.project-changelog li {
+    color: #2d3748;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.project-changelog li time {
+    font-weight: 700;
+}
+
+.sidebar.collapsed .project-changelog ul,
+.sidebar.collapsed .project-changelog-date {
+    display: none;
+}
+
 .sidebar-section h4 {
     color: white;
     font-size: 1rem;
